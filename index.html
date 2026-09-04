@@ -3,47 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>102-A 원클릭 집행분석기</title>
+  <title>부산광역시교육청 세출예산 집행실적 분석 시스템</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Font Awesome Icons -->
+  <!-- Font Awesome & Pretendard -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- SheetJS for Fast Reading -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+  <!-- Fast Read & Export Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- ExcelJS for High-End Professional Styled Export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-  <!-- FileSaver for Downloads -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <style>
-    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-    * { 
-      font-family: 'Pretendard', sans-serif; 
-      box-sizing: border-box;
-    }
+    * { font-family: 'Pretendard', sans-serif; box-sizing: border-box; }
     
-    /* 1. 불펌 방지: 텍스트 드래그 선택 제한 (인풋 요소는 정상 타이핑/복사 허용) */
     body {
       -webkit-user-select: none;
       -moz-user-select: none;
-      -ms-user-select: none;
       user-select: none;
+      background-color: #f8fafc;
+      color: #1e293b;
     }
     input, textarea, select {
       -webkit-user-select: text !important;
-      -moz-user-select: text !important;
-      -ms-user-select: text !important;
       user-select: text !important;
     }
 
     th.sortable { cursor: pointer; user-select: none; }
     th.sortable:hover { background-color: #f1f5f9; }
-    .badge { display: inline-flex; align-items: center; padding: 0.2rem 0.55rem; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; }
+    .badge { display: inline-flex; align-items: center; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.72rem; font-weight: 600; }
     
     .tab-btn.active {
-      background-color: #1e40af;
+      background-color: #1e293b;
       color: #ffffff;
       font-weight: 700;
-      box-shadow: 0 2px 6px rgba(30, 64, 175, 0.25);
     }
     .tab-btn:not(.active) {
       background-color: #ffffff;
@@ -55,12 +47,10 @@
       color: #0f172a;
     }
 
-    /* 콤보박스 드롭다운 아이템 */
-    .combo-item { cursor: pointer; padding: 0.55rem 0.75rem; transition: background-color 0.15s; }
-    .combo-item:hover { background-color: #eff6ff; color: #1d4ed8; font-weight: 600; }
-    .combo-item.selected { background-color: #dbeafe; color: #1e40af; font-weight: 700; }
+    .combo-item { cursor: pointer; padding: 0.5rem 0.75rem; transition: background-color 0.15s; }
+    .combo-item:hover { background-color: #f1f5f9; color: #1e3a8a; font-weight: 600; }
+    .combo-item.selected { background-color: #e0f2fe; color: #0369a1; font-weight: 700; }
 
-    /* 헤더 및 뱃지 스타일 */
     .version-badge {
       background-color: #ecfdf5;
       color: #047857;
@@ -69,7 +59,6 @@
       border-radius: 6px;
       font-size: 11px;
       font-weight: 700;
-      letter-spacing: -0.2px;
     }
     .feedback-btn {
       display: inline-flex;
@@ -86,420 +75,379 @@
       transition: all 0.15s;
     }
     .feedback-btn:hover {
-      border-color: #2563eb;
-      color: #1d4ed8;
+      border-color: #1e3a8a;
+      color: #1e3a8a;
       background: #eff6ff;
-      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.15);
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col">
 
-  <!-- 헤더 -->
-  <header class="bg-slate-900 text-white shadow-md border-b border-slate-800 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col md:flex-row justify-between items-center gap-3">
-      <div class="flex items-center space-x-3">
-        <div class="bg-blue-600 p-2.5 rounded-xl text-white shadow">
-          <i class="fa-solid fa-chart-pie text-xl"></i>
-        </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-lg md:text-xl font-bold tracking-tight">부산광역시교육청 세출예산 집행실적 분석 시스템</h1>
-            <!-- 4. 버전 표시 -->
-            <span class="version-badge">20260904 1210 개정판</span>
-          </div>
-          <p class="text-xs text-slate-300 mt-0.5">K-에듀파인 102-A 집행실적 | 정책 · 단위 · 세부사업별 다차원 소계 분석 대시보드</p>
-        </div>
-      </div>
-      
-      <div class="flex items-center gap-2.5 flex-wrap">
-        <!-- 2. 피드백 이메일 링크 버튼 -->
-        <a href="mailto:hola3927@korea.kr" class="feedback-btn" title="오류 제보 및 기능 제안">
-          <i class="fa-regular fa-envelope text-blue-600"></i>
-          <span>피드백 및 문의: <strong class="text-blue-700">hola3927@korea.kr</strong></span>
-        </a>
-        <div class="flex items-center space-x-2 text-xs bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">
-          <i class="fa-solid fa-shield-halved text-emerald-400"></i>
-          <span>100% 브라우저 로컬 분석 (외부 유출 안심)</span>
-        </div>
-      </div>
-    </div>
-  </header>
+  <main class="max-w-[1560px] mx-auto px-5 py-6 space-y-4 flex-1 w-full">
 
-  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6 flex-1 w-full">
-
-    <!-- 파일 업로드 영역 & 가이드 박스 -->
-    <div class="space-y-3">
-      <div id="dropZone" class="border-2 border-dashed border-blue-300 hover:border-blue-500 bg-white hover:bg-blue-50/40 rounded-2xl p-8 text-center transition-all duration-200 cursor-pointer shadow-sm group">
-        <input type="file" id="fileInput" accept=".xlsx, .xls" class="hidden" />
-        <div class="flex flex-col items-center justify-center space-y-3">
-          <div class="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform shadow-inner">
-            <i class="fa-solid fa-file-excel text-3xl"></i>
+    <!-- 통일된 상단 헤더 -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-2">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+            <i class="fa-solid fa-chart-pie"></i>
           </div>
           <div>
-            <p class="text-base font-bold text-slate-700">K-에듀파인 집행실적 엑셀 파일(102-A)을 드래그하거나 클릭하여 선택하세요</p>
-            <p class="text-xs text-slate-400 mt-1">정책사업 · 단위사업 · 세부사업 3단계 소계 요약 및 세부 집행내역 실시간 연동</p>
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg font-bold text-slate-800 tracking-tight">부산광역시교육청 세출예산 집행실적 분석 시스템</h1>
+              <span class="version-badge">20260904 개정판</span>
+            </div>
           </div>
-          <div id="fileStatus" class="hidden text-xs font-semibold text-blue-700 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-200">
-            <i class="fa-solid fa-spinner fa-spin mr-1.5"></i>데이터를 처리하고 있습니다...
+        </div>
+        
+        <div class="flex items-center gap-2 flex-wrap">
+          <a href="mailto:hola3927@korea.kr" class="feedback-btn" title="오류 제보 및 기능 제안">
+            <i class="fa-regular fa-envelope text-blue-600"></i>
+            <span>피드백 및 문의: <strong>hola3927@korea.kr</strong></span>
+          </a>
+          <div class="flex items-center space-x-1.5 text-xs bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600">
+            <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+            <span>100% 브라우저 로컬 분석 (외부 유출 안심)</span>
           </div>
         </div>
       </div>
+      <p class="text-xs text-slate-500">K-에듀파인 102-A 집행실적을 분석하여 정책 · 단위 · 세부사업별 다차원 소계 및 세부 비목을 조회합니다.</p>
 
-      <!-- K-에듀파인 엑셀 추출 가이드 (추천 보완 기능) -->
-      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-600 flex items-start gap-2.5">
-        <div class="p-1 rounded-md bg-blue-100 text-blue-600 font-bold text-[11px] shrink-0 mt-0.5">
-          <i class="fa-solid fa-circle-info"></i> 안내
-        </div>
+      <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-600 flex items-start gap-2 mt-3">
+        <div class="p-0.5 px-1.5 rounded bg-slate-200 text-slate-700 font-bold text-[11px] shrink-0">안내</div>
         <div class="leading-relaxed">
-          <strong>K-에듀파인 엑셀 추출 방법:</strong> 
-          [재정집행관리] &gt; [세출예산집행실적(102-A)] 메뉴에서 회계연도 및 기준일자 조회 후 상단 <strong>[파일]</strong> 버튼을 눌러 다운로드한 엑셀을 그대로 업로드하시면 됩니다. (업로드된 데이터는 사용자의 PC 내부에서만 분석되며 외부 인터넷으로 전송되지 않습니다.)
+          <strong>K-에듀파인 엑셀 다운로드 방법:</strong> 
+          [재정집행관리] &gt; [세출예산집행실적(102-A)] 메뉴에서 회계연도 및 기준일자 조회 후 상단 <strong>[파일]</strong> 버튼을 눌러 다운로드한 엑셀을 업로드하세요.
         </div>
       </div>
     </div>
 
-    <!-- 대시보드 본문 (기본 hidden) -->
-    <div id="dashboardSection" class="hidden space-y-6">
+    <!-- 파일 업로드 드롭존 -->
+    <div id="dropZone" class="border-2 border-dashed border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 rounded-xl p-6 text-center transition-all duration-150 cursor-pointer shadow-sm">
+      <input type="file" id="fileInput" accept=".xlsx, .xls" class="hidden" />
+      <div class="flex flex-col items-center justify-center space-y-2">
+        <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shadow-inner">
+          <i class="fa-solid fa-file-excel text-2xl"></i>
+        </div>
+        <div>
+          <p class="text-sm font-bold text-slate-700">K-에듀파인 집행실적 엑셀 파일(102-A)을 끌어다 놓거나 클릭하여 선택하세요</p>
+          <p class="text-xs text-slate-400 mt-0.5">정책 · 단위 · 세부사업 3단계 소계 요약 및 세부 집행내역 실시간 연동</p>
+        </div>
+        <div id="fileStatus" class="hidden text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+          <i class="fa-solid fa-spinner fa-spin mr-1"></i>데이터를 처리하고 있습니다...
+        </div>
+      </div>
+    </div>
 
-      <!-- 상단 툴바: 단위 설정 & 내보내기 & 클립보드 복사 -->
-      <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-        <div class="flex items-center space-x-3">
-          <span class="text-xs font-bold text-slate-500"><i class="fa-solid fa-won-sign mr-1"></i>화면 표시 단위:</span>
-          <div class="inline-flex rounded-xl border border-slate-200 p-0.5 bg-slate-100 text-xs">
-            <button onclick="setUnit('won')" id="btnUnitWon" class="px-3 py-1.5 rounded-lg font-bold bg-white text-blue-600 shadow-sm transition">원</button>
-            <button onclick="setUnit('thousand')" id="btnUnitThousand" class="px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition">천원</button>
-            <button onclick="setUnit('million')" id="btnUnitMillion" class="px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition">백만원</button>
-            <button onclick="setUnit('hundredMillion')" id="btnUnitHundredMillion" class="px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition">억원</button>
+    <!-- 대시보드 본문 -->
+    <div id="dashboardSection" class="hidden space-y-4">
+
+      <!-- 상단 툴바: 단위 설정 & 내보내기 -->
+      <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex items-center space-x-2">
+          <span class="text-xs font-semibold text-slate-500"><i class="fa-solid fa-won-sign mr-1"></i>표시 단위:</span>
+          <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100 text-xs">
+            <button onclick="setUnit('won')" id="btnUnitWon" class="px-2.5 py-1 rounded-md font-bold bg-white text-slate-800 shadow-sm transition">원</button>
+            <button onclick="setUnit('thousand')" id="btnUnitThousand" class="px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition">천원</button>
+            <button onclick="setUnit('million')" id="btnUnitMillion" class="px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition">백만원</button>
+            <button onclick="setUnit('hundredMillion')" id="btnUnitHundredMillion" class="px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition">억원</button>
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <!-- 불펌 방지가 걸려 있어도 업무용 한글/엑셀 복사는 정식 지원 -->
-          <button onclick="copyCurrentTable()" class="text-xs px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm" title="화면의 표 데이터를 한글(HWP)이나 엑셀에 붙여넣을 수 있도록 정형 복사합니다.">
-            <i class="fa-regular fa-copy text-slate-500"></i>현재 탭 표 클립보드 복사
+          <button onclick="copyCurrentTable()" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition flex items-center gap-1.5" title="화면의 표 데이터를 한글(HWP)이나 엑셀에 붙여넣을 수 있도록 복사합니다.">
+            <i class="fa-regular fa-copy text-slate-500"></i>HWP/엑셀 표 복사
           </button>
-          <button onclick="resetFilters()" class="text-xs px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold transition flex items-center gap-1.5">
-            <i class="fa-solid fa-rotate-right"></i>필터 초기화
+          <button onclick="resetFilters()" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-semibold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-rotate-right"></i>초기화
           </button>
-          <button onclick="exportToExcel()" id="btnExport" class="text-xs px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition flex items-center gap-2">
-            <i class="fa-solid fa-file-excel text-sm"></i>
-            <span>현재 검색결과 엑셀 다운로드</span>
+          <button onclick="exportToExcel()" id="btnExport" class="text-xs px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white rounded-lg font-semibold shadow-sm transition flex items-center gap-1.5">
+            <i class="fa-solid fa-file-excel text-xs"></i>
+            <span>엑셀 다운로드</span>
           </button>
         </div>
       </div>
 
       <!-- KPI 카드 4개 그리드 -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- 예산현액 -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hover:border-blue-300 transition">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <div class="flex justify-between items-start">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">예산현액 (BC열)</span>
-            <div class="p-2 rounded-lg bg-blue-50 text-blue-600"><i class="fa-solid fa-vault"></i></div>
+            <span class="text-xs font-semibold text-slate-500">예산현액 (BC열)</span>
+            <div class="p-1.5 rounded-md bg-slate-100 text-slate-600"><i class="fa-solid fa-vault text-xs"></i></div>
           </div>
-          <div class="text-xl md:text-2xl font-black text-slate-900 mt-2" id="kpiBudgetCurr">0</div>
+          <div class="text-xl font-bold text-slate-800 mt-1.5" id="kpiBudgetCurr">0</div>
           <div class="text-[11px] text-slate-400 mt-1 flex justify-between">
             <span>본예산: <b id="kpiBudgetInit" class="text-slate-600">0</b></span>
-            <span>추경합: <b id="kpiBudgetSup" class="text-slate-600">0</b></span>
+            <span>추경: <b id="kpiBudgetSup" class="text-slate-600">0</b></span>
           </div>
         </div>
 
-        <!-- 단순 지출금액 -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hover:border-slate-300 transition">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <div class="flex justify-between items-start">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">지출금액 (BF열)</span>
-            <div class="p-2 rounded-lg bg-slate-100 text-slate-600"><i class="fa-solid fa-money-check-dollar"></i></div>
+            <span class="text-xs font-semibold text-slate-500">단순 지출액 (BF열)</span>
+            <div class="p-1.5 rounded-md bg-slate-100 text-slate-600"><i class="fa-solid fa-money-check-dollar text-xs"></i></div>
           </div>
-          <div class="text-xl md:text-2xl font-black text-slate-700 mt-2" id="kpiExpense">0</div>
+          <div class="text-xl font-bold text-slate-700 mt-1.5" id="kpiExpense">0</div>
           <div class="text-[11px] text-slate-400 mt-1">
-            원인행위(BD): <b id="kpiContract" class="text-slate-600">0</b>
+            원인행위: <b id="kpiContract" class="text-slate-600">0</b>
           </div>
         </div>
 
-        <!-- 실지출금액 (조정 실집행액) -->
-        <div class="bg-gradient-to-br from-blue-50 to-indigo-50/70 p-5 rounded-2xl shadow-sm border border-blue-200 hover:border-blue-400 transition">
+        <div class="bg-blue-50/50 p-4 rounded-xl shadow-sm border border-blue-200">
           <div class="flex justify-between items-start">
             <div>
-              <span class="text-xs font-black text-blue-700 uppercase tracking-wider">실제지출금액</span>
-              <span class="text-[10px] text-blue-500 block font-normal">(지출액 - 교부액 + 지급액)</span>
+              <span class="text-xs font-bold text-blue-900">실제지출금액</span>
+              <span class="text-[10px] text-blue-600 block font-normal">(지출액 - 교부액 + 지급액)</span>
             </div>
-            <div class="p-2 rounded-lg bg-blue-600 text-white shadow"><i class="fa-solid fa-coins"></i></div>
+            <div class="p-1.5 rounded-md bg-blue-700 text-white shadow-sm"><i class="fa-solid fa-coins text-xs"></i></div>
           </div>
-          <div class="text-xl md:text-2xl font-black text-blue-900 mt-2" id="kpiActualExpense">0</div>
+          <div class="text-xl font-bold text-blue-900 mt-1.5" id="kpiActualExpense">0</div>
           <div class="text-[11px] text-blue-700/80 mt-1 flex justify-between">
-            <span>교부(BL): <b id="kpiRoutineGrant">0</b></span>
-            <span>지급(BN): <b id="kpiRoutinePay">0</b></span>
+            <span>교부: <b id="kpiRoutineGrant">0</b></span>
+            <span>지급: <b id="kpiRoutinePay">0</b></span>
           </div>
         </div>
 
-        <!-- 실제 집행잔액 -->
-        <div class="bg-gradient-to-br from-emerald-50 to-teal-50/70 p-5 rounded-2xl shadow-sm border border-emerald-200 hover:border-emerald-400 transition">
+        <div class="bg-emerald-50/50 p-4 rounded-xl shadow-sm border border-emerald-200">
           <div class="flex justify-between items-start">
             <div>
-              <span class="text-xs font-black text-emerald-700 uppercase tracking-wider">실제지출잔액</span>
-              <span class="text-[10px] text-emerald-500 block font-normal">(예산현액 - 실지출액)</span>
+              <span class="text-xs font-bold text-emerald-900">실제지출잔액</span>
+              <span class="text-[10px] text-emerald-600 block font-normal">(예산현액 - 실지출액)</span>
             </div>
-            <div class="p-2 rounded-lg bg-emerald-600 text-white shadow"><i class="fa-solid fa-scale-balanced"></i></div>
+            <div class="p-1.5 rounded-md bg-emerald-700 text-white shadow-sm"><i class="fa-solid fa-scale-balanced text-xs"></i></div>
           </div>
-          <div class="text-xl md:text-2xl font-black text-emerald-900 mt-2" id="kpiActualRemain">0</div>
+          <div class="text-xl font-bold text-emerald-900 mt-1.5" id="kpiActualRemain">0</div>
           <div class="text-[11px] text-emerald-700/80 mt-1 flex justify-between">
-            <span>불용액(BJ): <b id="kpiUnused">0</b></span>
+            <span>불용액: <b id="kpiUnused">0</b></span>
             <span>원인행위잔액: <b id="kpiContractRemain">0</b></span>
           </div>
         </div>
       </div>
 
       <!-- 집행률 상태 바 -->
-      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="w-full md:w-5/12">
-          <div class="flex justify-between items-center text-sm font-black text-slate-800 mb-1.5">
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-gauge-high text-blue-600"></i>실제 집행률</span>
-            <span id="kpiActualRate" class="text-blue-700 text-lg font-black">0.00%</span>
+          <div class="flex justify-between items-center text-xs font-bold text-slate-700 mb-1">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-gauge text-slate-500"></i>실제 집행률</span>
+            <span id="kpiActualRate" class="text-blue-800 text-sm font-bold">0.00%</span>
           </div>
-          <div class="w-full bg-slate-100 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-200">
-            <div id="rateProgressBar" class="bg-gradient-to-r from-blue-500 to-blue-700 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+          <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+            <div id="rateProgressBar" class="bg-blue-700 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-4 text-xs text-slate-600">
-          <div class="bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200">
-            <span class="font-semibold text-slate-500">조회된 비목(행) 건수:</span>
-            <span id="kpiTotalCount" class="font-black text-slate-900 ml-1">0</span>건
+        <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+          <div class="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+            <span class="text-slate-500">조회 건수:</span>
+            <span id="kpiTotalCount" class="font-bold text-slate-800 ml-1">0</span>건
           </div>
-          <div class="bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200">
-            <span class="font-semibold text-slate-500">단순 집행률:</span>
-            <span id="kpiSimpleRate" class="font-black text-slate-900 ml-1">0.00%</span>
+          <div class="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+            <span class="text-slate-500">단순 집행률:</span>
+            <span id="kpiSimpleRate" class="font-bold text-slate-800 ml-1">0.00%</span>
           </div>
-          <div class="bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200">
-            <span class="font-semibold text-slate-500">원인행위율:</span>
-            <span id="kpiContractRate" class="font-black text-slate-900 ml-1">0.00%</span>
+          <div class="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+            <span class="text-slate-500">원인행위율:</span>
+            <span id="kpiContractRate" class="font-bold text-slate-800 ml-1">0.00%</span>
           </div>
-          <div id="kpiStatusTag" class="badge bg-blue-100 text-blue-800 text-xs px-3 py-1.5">양호</div>
+          <div id="kpiStatusTag" class="badge bg-slate-100 text-slate-700 border border-slate-300">보통</div>
         </div>
       </div>
 
-      <!-- 검색 및 검색형 콤보박스(Searchable Combobox) 다중 필터 영역 -->
-      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-        <!-- 퀵 필터 뱃지 버튼 바 -->
-        <div class="flex flex-wrap items-center gap-1.5 text-xs border-b border-slate-100 pb-3">
-          <span class="text-slate-400 font-semibold mr-1.5"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i>빠른 모아보기:</span>
-          <button onclick="setQuickFilter('ALL')" id="qf_ALL" class="px-2.5 py-1 rounded-lg font-bold bg-blue-100 text-blue-800 transition">전체보기</button>
-          <button onclick="setQuickFilter('UNDER_50')" id="qf_UNDER_50" class="px-2.5 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700 transition">집행부진 (50% 미만)</button>
-          <button onclick="setQuickFilter('ZERO')" id="qf_ZERO" class="px-2.5 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">전액 미집행 (0%)</button>
-          <button onclick="setQuickFilter('OVER_90')" id="qf_OVER_90" class="px-2.5 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition">집행우수 (90% 이상)</button>
-          <button onclick="setQuickFilter('MAJOR')" id="qf_MAJOR" class="px-2.5 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition">대규모 사업 (10억원 이상)</button>
+      <!-- 필터 영역 -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+        <div class="flex flex-wrap items-center gap-1.5 text-xs border-b border-slate-100 pb-2.5">
+          <span class="text-slate-400 font-semibold mr-1">모아보기:</span>
+          <button onclick="setQuickFilter('ALL')" id="qf_ALL" class="px-2 py-0.5 rounded-md font-bold bg-slate-800 text-white transition">전체</button>
+          <button onclick="setQuickFilter('UNDER_50')" id="qf_UNDER_50" class="px-2 py-0.5 rounded-md font-medium bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-700 transition">50% 미만</button>
+          <button onclick="setQuickFilter('ZERO')" id="qf_ZERO" class="px-2 py-0.5 rounded-md font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">0% (미집행)</button>
+          <button onclick="setQuickFilter('OVER_90')" id="qf_OVER_90" class="px-2 py-0.5 rounded-md font-medium bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition">90% 이상</button>
+          <button onclick="setQuickFilter('MAJOR')" id="qf_MAJOR" class="px-2 py-0.5 rounded-md font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition">10억 이상</button>
         </div>
 
-        <div class="flex flex-col md:flex-row gap-3">
+        <div class="flex flex-col md:flex-row gap-2.5">
           <div class="relative flex-1">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-              <i class="fa-solid fa-magnifying-glass"></i>
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+              <i class="fa-solid fa-magnifying-glass text-xs"></i>
             </span>
-            <input type="text" id="searchInput" placeholder="사업명(세부사업, 단위업무), 부서명, 비목명, 비목코드(숫자) 등 통합 실시간 검색..." 
-                   class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+            <input type="text" id="searchInput" placeholder="사업명, 부서명, 비목명, 비목코드 등 통합 실시간 검색..." 
+                   class="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-400 transition" />
           </div>
-          <div class="w-full md:w-52">
-            <select id="rateFilter" class="w-full py-2.5 px-3 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-slate-700">
+          <div class="w-full md:w-48">
+            <select id="rateFilter" class="w-full py-2 px-2.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium text-slate-700">
               <option value="ALL">전체 집행률</option>
-              <option value="OVER_90">90% 이상 (원활)</option>
-              <option value="70_90">70% ~ 90% (보통)</option>
-              <option value="50_70">50% ~ 70% (주의)</option>
-              <option value="UNDER_50">50% 미만 (부진)</option>
+              <option value="OVER_90">90% 이상</option>
+              <option value="70_90">70% ~ 90%</option>
+              <option value="50_70">50% ~ 70%</option>
+              <option value="UNDER_50">50% 미만</option>
               <option value="ZERO">0% (미집행)</option>
             </select>
           </div>
         </div>
 
-        <!-- 검색형 콤보박스 4종 -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-          <!-- 1) 예산소관부서 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-xs">
+          <!-- 1) 부서 -->
           <div class="relative" id="comboContainer_dept">
-            <label class="block font-bold text-slate-600 mb-1 flex items-center justify-between">
-              <span>예산소관부서 (D열)</span>
+            <label class="block font-semibold text-slate-600 mb-1 flex justify-between">
+              <span>예산소관부서</span>
               <span id="deptCountBadge" class="text-[10px] text-slate-400 font-normal"></span>
             </label>
             <div class="relative flex items-center">
-              <input type="text" id="input_dept" placeholder="부서 선택 또는 검색..." autocomplete="off"
+              <input type="text" id="input_dept" placeholder="부서 선택/검색..." autocomplete="off"
                      onfocus="openCombo('dept')" oninput="onComboInput('dept')"
-                     class="w-full p-2.5 pr-14 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-400 font-medium text-xs truncate" />
-              <div class="absolute right-1.5 flex items-center space-x-1">
-                <button type="button" onclick="clearCombo('dept')" id="clear_dept" class="hidden text-slate-400 hover:text-slate-600 p-1 text-[11px]" title="초기화">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-                <button type="button" onclick="toggleCombo('dept')" class="text-slate-400 hover:text-slate-600 p-1 text-[10px]">
-                  <i class="fa-solid fa-chevron-down transition-transform duration-200" id="arrow_dept"></i>
-                </button>
+                     class="w-full p-2 pr-12 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white text-xs" />
+              <div class="absolute right-1 flex items-center space-x-1">
+                <button type="button" onclick="clearCombo('dept')" id="clear_dept" class="hidden text-slate-400 hover:text-slate-600 p-1 text-[10px]">✕</button>
+                <button type="button" onclick="toggleCombo('dept')" class="text-slate-400 hover:text-slate-600 p-1 text-[10px]">▼</button>
               </div>
             </div>
-            <div id="list_dept" class="hidden absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-30 divide-y divide-slate-50 text-xs"></div>
+            <div id="list_dept" class="hidden absolute left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg z-30 divide-y divide-slate-50 text-xs"></div>
           </div>
 
           <!-- 2) 정책사업 -->
           <div class="relative" id="comboContainer_policy">
-            <label class="block font-bold text-slate-600 mb-1 flex items-center justify-between">
-              <span>정책사업 (R열)</span>
-              <span id="policyCountBadge" class="text-[10px] text-blue-500 font-normal"></span>
+            <label class="block font-semibold text-slate-600 mb-1 flex justify-between">
+              <span>정책사업</span>
+              <span id="policyCountBadge" class="text-[10px] text-slate-400 font-normal"></span>
             </label>
             <div class="relative flex items-center">
-              <input type="text" id="input_policy" placeholder="정책사업 선택 또는 검색..." autocomplete="off"
+              <input type="text" id="input_policy" placeholder="정책사업 선택/검색..." autocomplete="off"
                      onfocus="openCombo('policy')" oninput="onComboInput('policy')"
-                     class="w-full p-2.5 pr-14 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-400 font-medium text-xs truncate" />
-              <div class="absolute right-1.5 flex items-center space-x-1">
-                <button type="button" onclick="clearCombo('policy')" id="clear_policy" class="hidden text-slate-400 hover:text-slate-600 p-1 text-[11px]" title="초기화">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-                <button type="button" onclick="toggleCombo('policy')" class="text-slate-400 hover:text-slate-600 p-1 text-[10px]">
-                  <i class="fa-solid fa-chevron-down transition-transform duration-200" id="arrow_policy"></i>
-                </button>
+                     class="w-full p-2 pr-12 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white text-xs" />
+              <div class="absolute right-1 flex items-center space-x-1">
+                <button type="button" onclick="clearCombo('policy')" id="clear_policy" class="hidden text-slate-400 hover:text-slate-600 p-1 text-[10px]">✕</button>
+                <button type="button" onclick="toggleCombo('policy')" class="text-slate-400 hover:text-slate-600 p-1 text-[10px]">▼</button>
               </div>
             </div>
-            <div id="list_policy" class="hidden absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-30 divide-y divide-slate-50 text-xs"></div>
+            <div id="list_policy" class="hidden absolute left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg z-30 divide-y divide-slate-50 text-xs"></div>
           </div>
 
           <!-- 3) 단위사업 -->
           <div class="relative" id="comboContainer_unit">
-            <label class="block font-bold text-slate-600 mb-1 flex items-center justify-between">
-              <span>단위사업 (T열)</span>
-              <span id="unitCountBadge" class="text-[10px] text-blue-500 font-normal"></span>
+            <label class="block font-semibold text-slate-600 mb-1 flex justify-between">
+              <span>단위사업</span>
+              <span id="unitCountBadge" class="text-[10px] text-slate-400 font-normal"></span>
             </label>
             <div class="relative flex items-center">
-              <input type="text" id="input_unit" placeholder="단위사업 선택 또는 검색..." autocomplete="off"
+              <input type="text" id="input_unit" placeholder="단위사업 선택/검색..." autocomplete="off"
                      onfocus="openCombo('unit')" oninput="onComboInput('unit')"
-                     class="w-full p-2.5 pr-14 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-400 font-medium text-xs truncate" />
-              <div class="absolute right-1.5 flex items-center space-x-1">
-                <button type="button" onclick="clearCombo('unit')" id="clear_unit" class="hidden text-slate-400 hover:text-slate-600 p-1 text-[11px]" title="초기화">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-                <button type="button" onclick="toggleCombo('unit')" class="text-slate-400 hover:text-slate-600 p-1 text-[10px]">
-                  <i class="fa-solid fa-chevron-down transition-transform duration-200" id="arrow_unit"></i>
-                </button>
+                     class="w-full p-2 pr-12 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white text-xs" />
+              <div class="absolute right-1 flex items-center space-x-1">
+                <button type="button" onclick="clearCombo('unit')" id="clear_unit" class="hidden text-slate-400 hover:text-slate-600 p-1 text-[10px]">✕</button>
+                <button type="button" onclick="toggleCombo('unit')" class="text-slate-400 hover:text-slate-600 p-1 text-[10px]">▼</button>
               </div>
             </div>
-            <div id="list_unit" class="hidden absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-30 divide-y divide-slate-50 text-xs"></div>
+            <div id="list_unit" class="hidden absolute left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg z-30 divide-y divide-slate-50 text-xs"></div>
           </div>
 
           <!-- 4) 목그룹 -->
           <div class="relative" id="comboContainer_mok">
-            <label class="block font-bold text-slate-600 mb-1 flex items-center justify-between">
+            <label class="block font-semibold text-slate-600 mb-1 flex justify-between">
               <span>목그룹</span>
               <span id="mokCountBadge" class="text-[10px] text-slate-400 font-normal"></span>
             </label>
             <div class="relative flex items-center">
-              <input type="text" id="input_mok" placeholder="목그룹 선택 또는 검색..." autocomplete="off"
+              <input type="text" id="input_mok" placeholder="목그룹 선택/검색..." autocomplete="off"
                      onfocus="openCombo('mok')" oninput="onComboInput('mok')"
-                     class="w-full p-2.5 pr-14 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-400 font-medium text-xs truncate" />
-              <div class="absolute right-1.5 flex items-center space-x-1">
-                <button type="button" onclick="clearCombo('mok')" id="clear_mok" class="hidden text-slate-400 hover:text-slate-600 p-1 text-[11px]" title="초기화">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-                <button type="button" onclick="toggleCombo('mok')" class="text-slate-400 hover:text-slate-600 p-1 text-[10px]">
-                  <i class="fa-solid fa-chevron-down transition-transform duration-200" id="arrow_mok"></i>
-                </button>
+                     class="w-full p-2 pr-12 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white text-xs" />
+              <div class="absolute right-1 flex items-center space-x-1">
+                <button type="button" onclick="clearCombo('mok')" id="clear_mok" class="hidden text-slate-400 hover:text-slate-600 p-1 text-[10px]">✕</button>
+                <button type="button" onclick="toggleCombo('mok')" class="text-slate-400 hover:text-slate-600 p-1 text-[10px]">▼</button>
               </div>
             </div>
-            <div id="list_mok" class="hidden absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-30 divide-y divide-slate-50 text-xs"></div>
+            <div id="list_mok" class="hidden absolute left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg z-30 divide-y divide-slate-50 text-xs"></div>
           </div>
         </div>
       </div>
 
-      <!-- 4대 분석 탭 네비게이션: [세부내역] | [정책사업별] | [단위사업별] | [세부사업별] -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 gap-3 pt-2">
-        <div class="flex flex-wrap items-center gap-2 text-sm font-semibold">
-          <button onclick="switchTab('detail')" id="tabBtnDetail" class="tab-btn active px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+      <!-- 4대 분석 탭 네비게이션 -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 gap-2 pt-1">
+        <div class="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+          <button onclick="switchTab('detail')" id="tabBtnDetail" class="tab-btn active px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
             <i class="fa-solid fa-table-list"></i>
             <span>세부 집행 내역</span>
-            <span id="tabBadgeDetail" class="text-xs px-2 py-0.5 rounded-full bg-white/25 text-white font-bold">0</span>
+            <span id="tabBadgeDetail" class="text-[11px] px-1.5 py-0.2 rounded-full bg-white/20 text-white font-bold">0</span>
           </button>
-          <button onclick="switchTab('policy')" id="tabBtnPolicy" class="tab-btn px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+          <button onclick="switchTab('policy')" id="tabBtnPolicy" class="tab-btn px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
             <i class="fa-solid fa-layer-group"></i>
             <span>정책사업별 요약</span>
-            <span id="tabBadgePolicy" class="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold">0</span>
+            <span id="tabBadgePolicy" class="text-[11px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-bold">0</span>
           </button>
-          <button onclick="switchTab('unit')" id="tabBtnUnit" class="tab-btn px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+          <button onclick="switchTab('unit')" id="tabBtnUnit" class="tab-btn px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
             <i class="fa-solid fa-folder-tree"></i>
             <span>단위사업별 요약</span>
-            <span id="tabBadgeUnit" class="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold">0</span>
+            <span id="tabBadgeUnit" class="text-[11px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-bold">0</span>
           </button>
-          <button onclick="switchTab('detailBiz')" id="tabBtnDetailBiz" class="tab-btn px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+          <button onclick="switchTab('detailBiz')" id="tabBtnDetailBiz" class="tab-btn px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
             <i class="fa-solid fa-diagram-project"></i>
             <span>세부사업별 요약</span>
-            <span id="tabBadgeDetailBiz" class="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold">0</span>
+            <span id="tabBadgeDetailBiz" class="text-[11px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-bold">0</span>
           </button>
         </div>
-        <div class="text-xs text-slate-400 font-medium">
-          ※ 각 요약표의 행이나 [상세보기]를 클릭하면 즉시 해당 사업으로 필터링됩니다.
+        <div class="text-[11px] text-slate-400">
+          ※ 요약표의 행이나 [상세보기]를 클릭하면 해당 사업 내역으로 이동합니다.
         </div>
       </div>
 
-      <!-- 1) 세부 집행 내역 탭 컨테이너 -->
-      <div id="tabContainerDetail" class="space-y-4">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50/50">
-            <div class="text-sm font-bold text-slate-800 flex items-center gap-2">
-              <i class="fa-solid fa-list-check text-blue-600"></i>
-              <span>세부 집행 내역 목록</span>
-              <span class="text-xs font-normal text-slate-400" id="sortStatusDesc">※ 기본 정렬: 1. 세부사업/단위업무, 2. 원가통계비목 (오름차순)</span>
-            </div>
+      <!-- 1) 세부 집행 내역 -->
+      <div id="tabContainerDetail" class="space-y-3">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-3 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+            <span class="text-xs font-bold text-slate-700" id="sortStatusDesc">※ 기본 정렬: 1. 세부사업/단위업무, 2. 원가통계비목 (오름차순)</span>
             <div class="flex items-center space-x-2 text-xs">
-              <span class="text-slate-500 font-medium">페이지당 표시:</span>
-              <select id="pageSizeSelect" onchange="changePageSize(this.value)" class="border border-slate-200 rounded-lg px-2 py-1 bg-white font-semibold">
+              <span class="text-slate-500">목록 수:</span>
+              <select id="pageSizeSelect" onchange="changePageSize(this.value)" class="border border-slate-200 rounded px-1.5 py-0.5 bg-white">
                 <option value="20">20개</option>
                 <option value="50" selected>50개</option>
                 <option value="100">100개</option>
-                <option value="200">200개</option>
               </select>
             </div>
           </div>
 
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs" id="detailTable">
-              <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+              <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
-                  <th class="p-3 sortable" onclick="sortTable('dept')">소관부서 <i id="sort_icon_dept" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
-                  <th class="p-3 sortable text-blue-900 bg-blue-50/40" onclick="sortTable('detail_task')">세부사업 / 단위업무 <i id="sort_icon_detail_task" class="fa-solid fa-sort-up text-blue-600 ml-1"></i></th>
-                  <th class="p-3 sortable text-blue-900 bg-blue-50/40" onclick="sortTable('mok_detail')">원가통계비목 (코드) <i id="sort_icon_mok_detail" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
-                  <th class="p-3 text-right sortable" onclick="sortTable('budget_curr')">예산현액 <i id="sort_icon_budget_curr" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
-                  <th class="p-3 text-right sortable" onclick="sortTable('exp_simple')">지출액 <i id="sort_icon_exp_simple" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
-                  <th class="p-3 text-right sortable text-blue-700 bg-blue-50/50" onclick="sortTable('actual_exp')">실제지출액 <i id="sort_icon_actual_exp" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
-                  <th class="p-3 text-right sortable text-emerald-700 bg-emerald-50/50" onclick="sortTable('actual_remain')">실제잔액 <i id="sort_icon_actual_remain" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
-                  <th class="p-3 text-center sortable" onclick="sortTable('rate')">집행률 <i id="sort_icon_rate" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
-                  <th class="p-3 text-right sortable" onclick="sortTable('unused')">불용액 <i id="sort_icon_unused" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
+                  <th class="p-2.5 sortable" onclick="sortTable('dept')">소관부서 <i id="sort_icon_dept" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
+                  <th class="p-2.5 sortable" onclick="sortTable('detail_task')">세부사업 / 단위업무 <i id="sort_icon_detail_task" class="fa-solid fa-sort-up text-slate-600 ml-1"></i></th>
+                  <th class="p-2.5 sortable" onclick="sortTable('mok_detail')">원가통계비목 (코드) <i id="sort_icon_mok_detail" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
+                  <th class="p-2.5 text-right sortable" onclick="sortTable('budget_curr')">예산현액 <i id="sort_icon_budget_curr" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
+                  <th class="p-2.5 text-right sortable" onclick="sortTable('exp_simple')">지출액 <i id="sort_icon_exp_simple" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
+                  <th class="p-2.5 text-right sortable text-blue-800 bg-blue-50/40" onclick="sortTable('actual_exp')">실제지출액 <i id="sort_icon_actual_exp" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
+                  <th class="p-2.5 text-right sortable text-emerald-800 bg-emerald-50/40" onclick="sortTable('actual_remain')">실제잔액 <i id="sort_icon_actual_remain" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
+                  <th class="p-2.5 text-center sortable" onclick="sortTable('rate')">집행률 <i id="sort_icon_rate" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
+                  <th class="p-2.5 text-right sortable" onclick="sortTable('unused')">불용액 <i id="sort_icon_unused" class="fa-solid fa-sort text-slate-300 ml-1"></i></th>
                 </tr>
               </thead>
               <tbody id="tableBody" class="divide-y divide-slate-100"></tbody>
             </table>
           </div>
 
-          <!-- 페이지네이션 컨트롤 -->
-          <div class="p-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50">
-            <div class="text-xs text-slate-500" id="paginationInfo">0개 중 0-0 표시</div>
+          <div class="p-3 border-t border-slate-200 flex justify-between items-center bg-slate-50 text-xs">
+            <div class="text-slate-500" id="paginationInfo">0개 중 0-0 표시</div>
             <div class="flex items-center space-x-1" id="paginationButtons"></div>
           </div>
         </div>
       </div>
 
-      <!-- 2) 정책사업별 요약 탭 컨테이너 -->
-      <div id="tabContainerPolicy" class="hidden space-y-4">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50/50">
-            <div class="text-sm font-bold text-slate-800 flex items-center gap-2">
-              <i class="fa-solid fa-layer-group text-blue-600"></i>
-              <span>정책사업별 예산 및 집행실적 소계 요약표</span>
-            </div>
-            <span class="text-xs text-slate-500 font-semibold" id="policyTableCount">0개 정책사업</span>
+      <!-- 2) 정책사업별 요약 -->
+      <div id="tabContainerPolicy" class="hidden space-y-3">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-3 border-b border-slate-200 flex justify-between items-center bg-slate-50/50 text-xs">
+            <span class="font-bold text-slate-700">정책사업별 예산 및 집행실적 소계</span>
+            <span class="text-slate-500" id="policyTableCount">0개 정책사업</span>
           </div>
-
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs" id="policyTable">
-              <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+              <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
-                  <th class="p-3 text-center">No</th>
-                  <th class="p-3">정책사업명</th>
-                  <th class="p-3 text-right">사업건수</th>
-                  <th class="p-3 text-right">예산현액</th>
-                  <th class="p-3 text-right">단순지출금액</th>
-                  <th class="p-3 text-right text-blue-800 bg-blue-50/60">실제지출금액</th>
-                  <th class="p-3 text-right text-emerald-800 bg-emerald-50/60">실제지출잔액</th>
-                  <th class="p-3 text-center">실집행률</th>
-                  <th class="p-3 text-right">불용액</th>
-                  <th class="p-3 text-center">드릴다운</th>
+                  <th class="p-2.5 text-center">No</th>
+                  <th class="p-2.5">정책사업명</th>
+                  <th class="p-2.5 text-right">사업건수</th>
+                  <th class="p-2.5 text-right">예산현액</th>
+                  <th class="p-2.5 text-right">지출금액</th>
+                  <th class="p-2.5 text-right text-blue-800 bg-blue-50/50">실제지출금액</th>
+                  <th class="p-2.5 text-right text-emerald-800 bg-emerald-50/50">실제지출잔액</th>
+                  <th class="p-2.5 text-center">실집행률</th>
+                  <th class="p-2.5 text-right">불용액</th>
+                  <th class="p-2.5 text-center">선택</th>
                 </tr>
               </thead>
               <tbody id="policyTableBody" class="divide-y divide-slate-100"></tbody>
@@ -508,32 +456,28 @@
         </div>
       </div>
 
-      <!-- 3) 단위사업별 요약 탭 컨테이너 -->
-      <div id="tabContainerUnit" class="hidden space-y-4">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50/50">
-            <div class="text-sm font-bold text-slate-800 flex items-center gap-2">
-              <i class="fa-solid fa-folder-tree text-indigo-600"></i>
-              <span>단위사업별 예산 및 집행실적 소계 요약표</span>
-            </div>
-            <span class="text-xs text-slate-500 font-semibold" id="unitTableCount">0개 단위사업</span>
+      <!-- 3) 단위사업별 요약 -->
+      <div id="tabContainerUnit" class="hidden space-y-3">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-3 border-b border-slate-200 flex justify-between items-center bg-slate-50/50 text-xs">
+            <span class="font-bold text-slate-700">단위사업별 예산 및 집행실적 소계</span>
+            <span class="text-slate-500" id="unitTableCount">0개 단위사업</span>
           </div>
-
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs" id="unitTable">
-              <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+              <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
-                  <th class="p-3 text-center">No</th>
-                  <th class="p-3">상위 정책사업</th>
-                  <th class="p-3 text-blue-900 bg-blue-50/40 font-black">단위사업명</th>
-                  <th class="p-3 text-right">사업건수</th>
-                  <th class="p-3 text-right">예산현액</th>
-                  <th class="p-3 text-right">단순지출금액</th>
-                  <th class="p-3 text-right text-blue-800 bg-blue-50/60">실제지출금액</th>
-                  <th class="p-3 text-right text-emerald-800 bg-emerald-50/60">실제지출잔액</th>
-                  <th class="p-3 text-center">실집행률</th>
-                  <th class="p-3 text-right">불용액</th>
-                  <th class="p-3 text-center">드릴다운</th>
+                  <th class="p-2.5 text-center">No</th>
+                  <th class="p-2.5">상위 정책사업</th>
+                  <th class="p-2.5 font-bold text-slate-700">단위사업명</th>
+                  <th class="p-2.5 text-right">사업건수</th>
+                  <th class="p-2.5 text-right">예산현액</th>
+                  <th class="p-2.5 text-right">지출금액</th>
+                  <th class="p-2.5 text-right text-blue-800 bg-blue-50/50">실제지출금액</th>
+                  <th class="p-2.5 text-right text-emerald-800 bg-emerald-50/50">실제지출잔액</th>
+                  <th class="p-2.5 text-center">실집행률</th>
+                  <th class="p-2.5 text-right">불용액</th>
+                  <th class="p-2.5 text-center">선택</th>
                 </tr>
               </thead>
               <tbody id="unitTableBody" class="divide-y divide-slate-100"></tbody>
@@ -542,33 +486,29 @@
         </div>
       </div>
 
-      <!-- 4) 세부사업별 요약 탭 컨테이너 -->
-      <div id="tabContainerDetailBiz" class="hidden space-y-4">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div class="p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2 bg-slate-50/50">
-            <div class="text-sm font-bold text-slate-800 flex items-center gap-2">
-              <i class="fa-solid fa-diagram-project text-emerald-600"></i>
-              <span>세부사업별 예산 및 집행실적 소계 요약표</span>
-            </div>
-            <span class="text-xs text-slate-500 font-semibold" id="detailBizTableCount">0개 세부사업</span>
+      <!-- 4) 세부사업별 요약 -->
+      <div id="tabContainerDetailBiz" class="hidden space-y-3">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-3 border-b border-slate-200 flex justify-between items-center bg-slate-50/50 text-xs">
+            <span class="font-bold text-slate-700">세부사업별 예산 및 집행실적 소계</span>
+            <span class="text-slate-500" id="detailBizTableCount">0개 세부사업</span>
           </div>
-
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs" id="detailBizTable">
-              <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+              <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
-                  <th class="p-3 text-center">No</th>
-                  <th class="p-3">소관부서</th>
-                  <th class="p-3">상위 단위사업</th>
-                  <th class="p-3 text-emerald-950 bg-emerald-50/50 font-black">세부사업명</th>
-                  <th class="p-3 text-center">편성비목수</th>
-                  <th class="p-3 text-right">예산현액</th>
-                  <th class="p-3 text-right">단순지출금액</th>
-                  <th class="p-3 text-right text-blue-800 bg-blue-50/60">실제지출금액</th>
-                  <th class="p-3 text-right text-emerald-800 bg-emerald-50/60">실제지출잔액</th>
-                  <th class="p-3 text-center">실집행률</th>
-                  <th class="p-3 text-right">불용액</th>
-                  <th class="p-3 text-center">드릴다운</th>
+                  <th class="p-2.5 text-center">No</th>
+                  <th class="p-2.5">소관부서</th>
+                  <th class="p-2.5">상위 단위사업</th>
+                  <th class="p-2.5 font-bold text-slate-700">세부사업명</th>
+                  <th class="p-2.5 text-center">비목수</th>
+                  <th class="p-2.5 text-right">예산현액</th>
+                  <th class="p-2.5 text-right">지출금액</th>
+                  <th class="p-2.5 text-right text-blue-800 bg-blue-50/50">실제지출금액</th>
+                  <th class="p-2.5 text-right text-emerald-800 bg-emerald-50/50">실제지출잔액</th>
+                  <th class="p-2.5 text-center">실집행률</th>
+                  <th class="p-2.5 text-right">불용액</th>
+                  <th class="p-2.5 text-center">선택</th>
                 </tr>
               </thead>
               <tbody id="detailBizTableBody" class="divide-y divide-slate-100"></tbody>
@@ -581,25 +521,17 @@
 
   </main>
 
-  <!-- 3. 저작권 관련 문구 및 피드백 푸터 -->
-  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-auto space-y-2">
-    <p class="font-bold text-slate-800 text-sm">
+  <footer class="bg-white border-t border-slate-200 py-5 text-center text-xs text-slate-500 mt-auto space-y-1">
+    <p class="font-bold text-slate-700">
       Copyright &copy; 2026 부산광역시교육청. All Rights Reserved.
     </p>
-    <p class="text-slate-500 max-w-2xl mx-auto px-4 leading-relaxed">
-      본 프로그램의 소스코드 및 집행실적 산출·연계 로직은 저작권법의 보호를 받으며, 무단 복제·도용 및 배포 시 법적 조치가 취해질 수 있습니다.
-    </p>
-    <p class="text-slate-400 text-[11px] pt-1">
-      프로그램 버전: <strong>20260904 1210 개정판</strong> &nbsp;|&nbsp; 기능 문의 및 피드백: 
+    <p class="text-slate-400 text-[11px]">
+      프로그램 버전: 20260904 개정판 &nbsp;|&nbsp; 기능 문의 및 피드백: 
       <a href="mailto:hola3927@korea.kr" class="text-blue-600 hover:underline font-semibold">hola3927@korea.kr</a>
     </p>
   </footer>
 
-  <!-- 핵심 스크립트 -->
   <script>
-    /* =========================================================================
-       ★ 1. 불펌 방지 (우클릭 및 키보드 단축키 제한, 입력창 타이핑/복사는 허용)
-       ========================================================================= */
     document.addEventListener('contextmenu', function(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       e.preventDefault();
@@ -608,44 +540,23 @@
 
     document.addEventListener('keydown', function(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      
-      // F12 개발자 도구 방지
-      if (e.key === 'F12' || e.keyCode === 123) {
+      if (e.key === 'F12' || e.keyCode === 123) { e.preventDefault(); return false; }
+      if (e.ctrlKey && ['u', 's', 'c'].includes(e.key.toLowerCase())) {
         e.preventDefault();
         return false;
-      }
-      
-      // Ctrl+U (소스보기), Ctrl+S (저장), Ctrl+C (복사) 방지
-      if (e.ctrlKey) {
-        if (['u', 's', 'c'].includes(e.key.toLowerCase())) {
-          e.preventDefault();
-          return false;
-        }
       }
     });
 
     let rawData = [];
     let filteredData = [];
     let currentUnit = 'won';
-    let activeTab = 'detail'; // 'detail' | 'policy' | 'unit' | 'detailBiz'
+    let activeTab = 'detail';
 
-    const selectedValues = {
-      dept: '',
-      policy: '',
-      unit: '',
-      mok: ''
-    };
-
-    const availableOptions = {
-      dept: [],
-      policy: [],
-      unit: [],
-      mok: []
-    };
+    const selectedValues = { dept: '', policy: '', unit: '', mok: '' };
+    const availableOptions = { dept: [], policy: [], unit: [], mok: [] };
 
     let sortKey = 'default';
     let sortAsc = true;
-
     let currentPage = 1;
     let pageSize = 50;
 
@@ -654,11 +565,11 @@
     const fileStatus = document.getElementById('fileStatus');
 
     dropZone.addEventListener('click', () => fileInput.click());
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500', 'bg-blue-50'); });
-    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-blue-500', 'bg-blue-50'); });
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-slate-500', 'bg-slate-50'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-slate-500', 'bg-slate-50'); });
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
-      dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+      dropZone.classList.remove('border-slate-500', 'bg-slate-50');
       if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
     });
     fileInput.addEventListener('change', (e) => {
@@ -667,7 +578,7 @@
 
     function handleFile(file) {
       fileStatus.classList.remove('hidden');
-      fileStatus.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1.5"></i><strong>${file.name}</strong> 파일을 읽는 중입니다...`;
+      fileStatus.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i><strong>${file.name}</strong> 읽는 중...`;
 
       const reader = new FileReader();
       reader.onload = function(e) {
@@ -678,11 +589,10 @@
           const jsonData = XLSX.utils.sheet_to_json(firstSheet, { range: 2 });
           processData(jsonData);
 
-          fileStatus.innerHTML = `<i class="fa-solid fa-check-circle text-emerald-600 mr-1.5"></i><strong>${file.name}</strong> (${jsonData.length.toLocaleString()}건) 로드 완료`;
+          fileStatus.innerHTML = `<i class="fa-solid fa-check text-emerald-600 mr-1"></i><strong>${file.name}</strong> (${jsonData.length.toLocaleString()}건) 로드 완료`;
           document.getElementById('dashboardSection').classList.remove('hidden');
         } catch (err) {
-          console.error(err);
-          alert('파일 파싱 중 오류가 발생했습니다: ' + err.message);
+          alert('파일 파싱 중 오류: ' + err.message);
           fileStatus.classList.add('hidden');
         }
       };
@@ -706,10 +616,7 @@
         const simple_rate = budget_curr > 0 ? (exp_simple / budget_curr) * 100 : 0;
 
         let mok_code_raw = row['원가통계비목코드'];
-        let mok_code = '';
-        if (mok_code_raw !== undefined && mok_code_raw !== null) {
-          mok_code = String(mok_code_raw).trim().replace(/\.0$/, '');
-        }
+        let mok_code = (mok_code_raw !== undefined && mok_code_raw !== null) ? String(mok_code_raw).trim().replace(/\.0$/, '') : '';
 
         return {
           dept: row['예산소관부서명'] || '-',
@@ -720,20 +627,10 @@
           detail: row['세부사업'] || '-',
           task: row['단위업무'] || '-',
           mok_group: row['목그룹'] || '-',
-          mok_code: mok_code,
+          mok_code,
           mok_detail: row['원가통계비목'] || '-',
-          budget_init,
-          budget_sup,
-          budget_curr,
-          contract,
-          exp_simple,
-          grant,
-          pay,
-          unused,
-          actual_exp,
-          actual_remain,
-          rate,
-          simple_rate
+          budget_init, budget_sup, budget_curr, contract, exp_simple, grant, pay, unused,
+          actual_exp, actual_remain, rate, simple_rate
         };
       });
 
@@ -742,9 +639,6 @@
       applyFilters();
     }
 
-    // =========================================================================
-    // 검색형 콤보박스(Searchable Combobox) 로직
-    // =========================================================================
     const comboTypes = ['dept', 'policy', 'unit', 'mok'];
 
     function initCombos() {
@@ -754,24 +648,20 @@
 
     function updateCascadingOptions() {
       let deptSubset = rawData;
-      if (selectedValues.dept) {
-        deptSubset = rawData.filter(d => d.dept === selectedValues.dept);
-      }
+      if (selectedValues.dept) deptSubset = rawData.filter(d => d.dept === selectedValues.dept);
 
       availableOptions.policy = [...new Set(deptSubset.map(d => d.policy))].filter(Boolean).sort((a,b) => a.localeCompare(b, 'ko'));
 
       let policySubset = deptSubset;
-      if (selectedValues.policy) {
-        policySubset = deptSubset.filter(d => d.policy === selectedValues.policy);
-      }
+      if (selectedValues.policy) policySubset = deptSubset.filter(d => d.policy === selectedValues.policy);
 
       availableOptions.unit = [...new Set(policySubset.map(d => d.unit))].filter(Boolean).sort((a,b) => a.localeCompare(b, 'ko'));
       availableOptions.mok = [...new Set(policySubset.map(d => d.mok_group))].filter(Boolean).sort((a,b) => a.localeCompare(b, 'ko'));
 
-      document.getElementById('deptCountBadge').textContent = `(${availableOptions.dept.length}개)`;
-      document.getElementById('policyCountBadge').textContent = selectedValues.dept ? `(${availableOptions.policy.length}개)` : '';
-      document.getElementById('unitCountBadge').textContent = selectedValues.policy ? `(${availableOptions.unit.length}개)` : '';
-      document.getElementById('mokCountBadge').textContent = `(${availableOptions.mok.length}개)`;
+      document.getElementById('deptCountBadge').textContent = `(${availableOptions.dept.length})`;
+      document.getElementById('policyCountBadge').textContent = selectedValues.dept ? `(${availableOptions.policy.length})` : '';
+      document.getElementById('unitCountBadge').textContent = selectedValues.policy ? `(${availableOptions.unit.length})` : '';
+      document.getElementById('mokCountBadge').textContent = `(${availableOptions.mok.length})`;
 
       comboTypes.forEach(type => renderComboList(type));
     }
@@ -786,30 +676,26 @@
       const filtered = q ? items.filter(item => item.toLowerCase().includes(q)) : items;
 
       let html = `<div class="combo-item text-slate-500 font-semibold ${!curSelected ? 'selected' : ''}" onclick="selectComboItem('${type}', '')">
-        <i class="fa-solid fa-list-ul mr-1.5 text-slate-400"></i>전체 (선택 해제)
+        전체 (해제)
       </div>`;
 
       if (filtered.length === 0) {
-        html += `<div class="p-3 text-center text-slate-400">일치하는 항목이 없습니다.</div>`;
+        html += `<div class="p-2 text-center text-slate-400">일치 항목 없음</div>`;
       } else {
         filtered.forEach(item => {
           const isSel = (item === curSelected);
           html += `<div class="combo-item flex items-center justify-between ${isSel ? 'selected' : ''}" onclick="selectComboItem('${type}', '${item.replace(/'/g, "\'")}')">
             <span>${item}</span>
-            ${isSel ? '<i class="fa-solid fa-check text-blue-600 text-xs"></i>' : ''}
+            ${isSel ? '<i class="fa-solid fa-check text-slate-600 text-xs"></i>' : ''}
           </div>`;
         });
       }
-
       listEl.innerHTML = html;
     }
 
     function openCombo(type) {
       closeAllCombos();
-      const listEl = document.getElementById(`list_${type}`);
-      const arrowEl = document.getElementById(`arrow_${type}`);
-      listEl.classList.remove('hidden');
-      if (arrowEl) arrowEl.classList.add('rotate-180');
+      document.getElementById(`list_${type}`).classList.remove('hidden');
       renderComboList(type, document.getElementById(`input_${type}`).value);
     }
 
@@ -825,9 +711,7 @@
 
     function closeCombo(type) {
       const listEl = document.getElementById(`list_${type}`);
-      const arrowEl = document.getElementById(`arrow_${type}`);
       if (listEl) listEl.classList.add('hidden');
-      if (arrowEl) arrowEl.classList.remove('rotate-180');
       const inputEl = document.getElementById(`input_${type}`);
       if (inputEl) inputEl.value = selectedValues[type];
     }
@@ -835,39 +719,25 @@
     function closeAllCombos() {
       comboTypes.forEach(t => {
         const listEl = document.getElementById(`list_${t}`);
-        const arrowEl = document.getElementById(`arrow_${t}`);
         if (listEl) listEl.classList.add('hidden');
-        if (arrowEl) arrowEl.classList.remove('rotate-180');
       });
     }
 
     function onComboInput(type) {
-      const inputEl = document.getElementById(`input_${type}`);
-      const val = inputEl.value;
-      const clearBtn = document.getElementById(`clear_${type}`);
-      if (val) clearBtn.classList.remove('hidden');
-      else clearBtn.classList.add('hidden');
-
+      const val = document.getElementById(`input_${type}`).value;
+      document.getElementById(`clear_${type}`).classList.toggle('hidden', !val);
       const listEl = document.getElementById(`list_${type}`);
-      if (listEl.classList.contains('hidden')) {
-        openCombo(type);
-      } else {
-        renderComboList(type, val);
-      }
+      if (listEl.classList.contains('hidden')) openCombo(type);
+      else renderComboList(type, val);
     }
 
     function selectComboItem(type, value) {
       selectedValues[type] = value;
-      const inputEl = document.getElementById(`input_${type}`);
-      const clearBtn = document.getElementById(`clear_${type}`);
-      inputEl.value = value;
-
-      if (value) clearBtn.classList.remove('hidden');
-      else clearBtn.classList.add('hidden');
+      document.getElementById(`input_${type}`).value = value;
+      document.getElementById(`clear_${type}`).classList.toggle('hidden', !value);
 
       if (type === 'dept') {
-        selectedValues.policy = '';
-        selectedValues.unit = '';
+        selectedValues.policy = ''; selectedValues.unit = '';
         document.getElementById('input_policy').value = '';
         document.getElementById('input_unit').value = '';
         document.getElementById('clear_policy').classList.add('hidden');
@@ -884,16 +754,12 @@
       applyFilters();
     }
 
-    function clearCombo(type) {
-      selectComboItem(type, '');
-    }
+    function clearCombo(type) { selectComboItem(type, ''); }
 
     document.addEventListener('click', function(e) {
       comboTypes.forEach(type => {
         const container = document.getElementById(`comboContainer_${type}`);
-        if (container && !container.contains(e.target)) {
-          closeCombo(type);
-        }
+        if (container && !container.contains(e.target)) closeCombo(type);
       });
     });
 
@@ -904,25 +770,17 @@
 
     function setQuickFilter(mode) {
       ['qf_ALL', 'qf_UNDER_50', 'qf_ZERO', 'qf_OVER_90', 'qf_MAJOR'].forEach(id => {
-        const b = document.getElementById(id);
-        b.className = 'px-2.5 py-1 rounded-lg font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition';
+        document.getElementById(id).className = 'px-2 py-0.5 rounded-md font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition';
       });
       const activeBtn = document.getElementById('qf_' + mode);
-      if (activeBtn) {
-        activeBtn.className = 'px-2.5 py-1 rounded-lg font-bold bg-blue-100 text-blue-800 transition';
-      }
+      if (activeBtn) activeBtn.className = 'px-2 py-0.5 rounded-md font-bold bg-slate-800 text-white transition';
 
-      if (mode === 'ALL') {
-        document.getElementById('rateFilter').value = 'ALL';
-      } else if (mode === 'UNDER_50') {
-        document.getElementById('rateFilter').value = 'UNDER_50';
-      } else if (mode === 'ZERO') {
-        document.getElementById('rateFilter').value = 'ZERO';
-      } else if (mode === 'OVER_90') {
-        document.getElementById('rateFilter').value = 'OVER_90';
-      } else if (mode === 'MAJOR') {
-        document.getElementById('rateFilter').value = 'ALL';
-      }
+      if (mode === 'ALL') document.getElementById('rateFilter').value = 'ALL';
+      else if (mode === 'UNDER_50') document.getElementById('rateFilter').value = 'UNDER_50';
+      else if (mode === 'ZERO') document.getElementById('rateFilter').value = 'ZERO';
+      else if (mode === 'OVER_90') document.getElementById('rateFilter').value = 'OVER_90';
+      else if (mode === 'MAJOR') document.getElementById('rateFilter').value = 'ALL';
+      
       currentPage = 1;
       applyFilters(mode);
     }
@@ -947,17 +805,13 @@
     function applyFilters(quickMode = 'ALL') {
       const q = document.getElementById('searchInput').value.trim().toLowerCase();
       const rateCond = document.getElementById('rateFilter').value;
-      const deptVal = selectedValues.dept;
-      const policyVal = selectedValues.policy;
-      const unitVal = selectedValues.unit;
-      const mokVal = selectedValues.mok;
+      const { dept, policy, unit, mok } = selectedValues;
 
       filteredData = rawData.filter(d => {
-        if (deptVal && d.dept !== deptVal) return false;
-        if (policyVal && d.policy !== policyVal) return false;
-        if (unitVal && d.unit !== unitVal) return false;
-        if (mokVal && d.mok_group !== mokVal) return false;
-
+        if (dept && d.dept !== dept) return false;
+        if (policy && d.policy !== policy) return false;
+        if (unit && d.unit !== unit) return false;
+        if (mok && d.mok_group !== mok) return false;
         if (quickMode === 'MAJOR' && d.budget_curr < 1000000000) return false;
 
         if (rateCond === 'OVER_90' && d.rate < 90) return false;
@@ -976,48 +830,28 @@
                           d.mok_code.toLowerCase().includes(q);
           if (!matched) return false;
         }
-
         return true;
       });
 
-      // 정렬 처리
       filteredData.sort((a, b) => {
         if (sortKey === 'default') {
-          let cmp1 = a.detail.localeCompare(b.detail, 'ko') || a.task.localeCompare(b.task, 'ko');
-          if (cmp1 !== 0) return cmp1;
-          return a.mok_detail.localeCompare(b.mok_detail, 'ko') || a.mok_code.localeCompare(b.mok_code);
+          let cmp = a.detail.localeCompare(b.detail, 'ko') || a.task.localeCompare(b.task, 'ko');
+          return cmp !== 0 ? cmp : (a.mok_detail.localeCompare(b.mok_detail, 'ko') || a.mok_code.localeCompare(b.mok_code));
         }
-
         if (sortKey === 'detail_task') {
           let cmp = a.detail.localeCompare(b.detail, 'ko') || a.task.localeCompare(b.task, 'ko');
-          if (cmp === 0) {
-            cmp = a.mok_detail.localeCompare(b.mok_detail, 'ko') || a.mok_code.localeCompare(b.mok_code);
-          }
           return sortAsc ? cmp : -cmp;
         }
-
         if (sortKey === 'mok_detail') {
           let cmp = a.mok_detail.localeCompare(b.mok_detail, 'ko') || a.mok_code.localeCompare(b.mok_code);
-          if (cmp === 0) {
-            cmp = a.detail.localeCompare(b.detail, 'ko') || a.task.localeCompare(b.task, 'ko');
-          }
           return sortAsc ? cmp : -cmp;
         }
-
         if (sortKey === 'dept') {
           let cmp = a.dept.localeCompare(b.dept, 'ko');
-          if (cmp === 0) {
-            cmp = a.detail.localeCompare(b.detail, 'ko') || a.task.localeCompare(b.task, 'ko');
-          }
           return sortAsc ? cmp : -cmp;
         }
-
-        let va = a[sortKey];
-        let vb = b[sortKey];
-        if (va !== vb) {
-          return sortAsc ? va - vb : vb - va;
-        }
-        return a.detail.localeCompare(b.detail, 'ko') || a.task.localeCompare(b.task, 'ko');
+        let va = a[sortKey], vb = b[sortKey];
+        return va !== vb ? (sortAsc ? va - vb : vb - va) : 0;
       });
 
       updateKPIs();
@@ -1028,11 +862,10 @@
     }
 
     function sortTable(key) {
-      if (sortKey === key) {
-        sortAsc = !sortAsc;
-      } else {
+      if (sortKey === key) sortAsc = !sortAsc;
+      else {
         sortKey = key;
-        sortAsc = (key === 'dept' || key === 'detail_task' || key === 'mok_detail');
+        sortAsc = ['dept', 'detail_task', 'mok_detail'].includes(key);
       }
       updateSortIcons();
       applyFilters();
@@ -1044,38 +877,25 @@
         const icon = document.getElementById('sort_icon_' + k);
         if (!icon) return;
         if (sortKey === k || (sortKey === 'default' && k === 'detail_task')) {
-          icon.className = sortAsc ? 'fa-solid fa-sort-up text-blue-600 ml-1' : 'fa-solid fa-sort-down text-blue-600 ml-1';
+          icon.className = sortAsc ? 'fa-solid fa-sort-up text-slate-700 ml-1' : 'fa-solid fa-sort-down text-slate-700 ml-1';
         } else {
           icon.className = 'fa-solid fa-sort text-slate-300 ml-1';
         }
       });
-
-      const desc = document.getElementById('sortStatusDesc');
-      if (desc) {
-        if (sortKey === 'default') {
-          desc.textContent = '※ 기본 정렬: 1. 세부사업/단위업무, 2. 원가통계비목 (오름차순)';
-        } else if (sortKey === 'detail_task') {
-          desc.textContent = `※ 정렬 기준: 세부사업 / 단위업무 (${sortAsc ? '오름차순 ↑' : '내림차순 ↓'})`;
-        } else if (sortKey === 'mok_detail') {
-          desc.textContent = `※ 정렬 기준: 원가통계비목 (${sortAsc ? '오름차순 ↑' : '내림차순 ↓'})`;
-        } else {
-          desc.textContent = `※ 정렬 기준: ${sortKey} (${sortAsc ? '오름차순 ↑' : '내림차순 ↓'})`;
-        }
-      }
     }
 
     function updateKPIs() {
       const totalCount = filteredData.length;
-      const totalBudgetCurr = filteredData.reduce((acc, d) => acc + d.budget_curr, 0);
-      const totalBudgetInit = filteredData.reduce((acc, d) => acc + d.budget_init, 0);
-      const totalBudgetSup = filteredData.reduce((acc, d) => acc + d.budget_sup, 0);
-      const totalExpSimple = filteredData.reduce((acc, d) => acc + d.exp_simple, 0);
-      const totalActualExp = filteredData.reduce((acc, d) => acc + d.actual_exp, 0);
-      const totalActualRemain = filteredData.reduce((acc, d) => acc + d.actual_remain, 0);
-      const totalGrant = filteredData.reduce((acc, d) => acc + d.grant, 0);
-      const totalPay = filteredData.reduce((acc, d) => acc + d.pay, 0);
-      const totalContract = filteredData.reduce((acc, d) => acc + d.contract, 0);
-      const totalUnused = filteredData.reduce((acc, d) => acc + d.unused, 0);
+      const totalBudgetCurr = filteredData.reduce((a, d) => a + d.budget_curr, 0);
+      const totalBudgetInit = filteredData.reduce((a, d) => a + d.budget_init, 0);
+      const totalBudgetSup = filteredData.reduce((a, d) => a + d.budget_sup, 0);
+      const totalExpSimple = filteredData.reduce((a, d) => a + d.exp_simple, 0);
+      const totalActualExp = filteredData.reduce((a, d) => a + d.actual_exp, 0);
+      const totalActualRemain = filteredData.reduce((a, d) => a + d.actual_remain, 0);
+      const totalGrant = filteredData.reduce((a, d) => a + d.grant, 0);
+      const totalPay = filteredData.reduce((a, d) => a + d.pay, 0);
+      const totalContract = filteredData.reduce((a, d) => a + d.contract, 0);
+      const totalUnused = filteredData.reduce((a, d) => a + d.unused, 0);
 
       const actualRate = totalBudgetCurr > 0 ? (totalActualExp / totalBudgetCurr) * 100 : 0;
       const simpleRate = totalBudgetCurr > 0 ? (totalExpSimple / totalBudgetCurr) * 100 : 0;
@@ -1102,14 +922,14 @@
 
       const tag = document.getElementById('kpiStatusTag');
       if (actualRate >= 85) {
-        tag.className = 'badge bg-emerald-100 text-emerald-800 text-xs px-3 py-1.5';
-        tag.textContent = '집행 원활 (85% 이상)';
+        tag.className = 'badge bg-emerald-50 text-emerald-800 border border-emerald-200';
+        tag.textContent = '원활 (85%↑)';
       } else if (actualRate >= 65) {
-        tag.className = 'badge bg-blue-100 text-blue-800 text-xs px-3 py-1.5';
-        tag.textContent = '집행 보통 (65~85%)';
+        tag.className = 'badge bg-slate-100 text-slate-700 border border-slate-200';
+        tag.textContent = '보통 (65~85%)';
       } else {
-        tag.className = 'badge bg-amber-100 text-amber-800 text-xs px-3 py-1.5';
-        tag.textContent = '집행 부진 주의 (65% 미만)';
+        tag.className = 'badge bg-amber-50 text-amber-800 border border-amber-200';
+        tag.textContent = '부진 주의 (65%↓)';
       }
     }
 
@@ -1121,10 +941,10 @@
         const btn = document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
         const container = document.getElementById(`tabContainer${t.charAt(0).toUpperCase() + t.slice(1)}`);
         if (t === tab) {
-          btn.className = 'tab-btn active px-3.5 py-2 rounded-xl transition flex items-center gap-1.5';
+          btn.className = 'tab-btn active px-3 py-1.5 rounded-lg transition flex items-center gap-1.5';
           container.classList.remove('hidden');
         } else {
-          btn.className = 'tab-btn px-3.5 py-2 rounded-xl transition flex items-center gap-1.5';
+          btn.className = 'tab-btn px-3 py-1.5 rounded-lg transition flex items-center gap-1.5';
           container.classList.add('hidden');
         }
       });
@@ -1157,64 +977,31 @@
       document.getElementById('tabBadgePolicy').textContent = `${policyList.length}`;
 
       if (policyList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-400">조회된 데이터가 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="p-6 text-center text-slate-400">데이터 없음</td></tr>`;
         return;
       }
 
-      const totCount = policyList.reduce((a, b) => a + b[1].count, 0);
-      const totBudget = policyList.reduce((a, b) => a + b[1].budget, 0);
-      const totExp = policyList.reduce((a, b) => a + b[1].exp, 0);
-      const totActual = policyList.reduce((a, b) => a + b[1].actual, 0);
-      const totRemain = policyList.reduce((a, b) => a + b[1].remain, 0);
-      const totUnused = policyList.reduce((a, b) => a + b[1].unused, 0);
-      const totRate = totBudget > 0 ? (totActual / totBudget) * 100 : 0;
-
-      const trTotal = document.createElement('tr');
-      trTotal.className = 'bg-blue-50/70 font-extrabold text-blue-900 border-b-2 border-blue-200';
-      trTotal.innerHTML = `
-        <td class="p-3 text-center">합계</td>
-        <td class="p-3 font-black">전체 정책사업 (${policyList.length}개)</td>
-        <td class="p-3 text-right">${totCount.toLocaleString()}건</td>
-        <td class="p-3 text-right">${formatMoney(totBudget)}</td>
-        <td class="p-3 text-right">${formatMoney(totExp)}</td>
-        <td class="p-3 text-right text-blue-800">${formatMoney(totActual)}</td>
-        <td class="p-3 text-right text-emerald-800">${formatMoney(totRemain)}</td>
-        <td class="p-3 text-center"><span class="badge bg-blue-600 text-white">${totRate.toFixed(1)}%</span></td>
-        <td class="p-3 text-right">${formatMoney(totUnused)}</td>
-        <td class="p-3 text-center">-</td>
-      `;
-      tbody.appendChild(trTotal);
-
       policyList.forEach(([pName, s], idx) => {
         const rate = s.budget > 0 ? (s.actual / s.budget) * 100 : 0;
-        let rateBadge = 'bg-slate-100 text-slate-700';
-        if (rate >= 90) rateBadge = 'bg-emerald-100 text-emerald-800';
-        else if (rate >= 70) rateBadge = 'bg-blue-100 text-blue-800';
-        else if (rate >= 50) rateBadge = 'bg-amber-100 text-amber-800';
-        else if (rate > 0) rateBadge = 'bg-rose-100 text-rose-800';
-
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-blue-50/40 transition cursor-pointer';
+        tr.className = 'hover:bg-slate-50 transition cursor-pointer';
         tr.onclick = (e) => {
           if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) drillDownPolicy(pName);
         };
 
         tr.innerHTML = `
-          <td class="p-3 text-center text-slate-400 font-mono">${idx + 1}</td>
-          <td class="p-3 font-bold text-slate-800 hover:text-blue-600 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-folder text-blue-400 text-xs"></i>
-            <span>${pName}</span>
-          </td>
-          <td class="p-3 text-right text-slate-600 font-medium">${s.count.toLocaleString()}건</td>
-          <td class="p-3 text-right font-bold text-slate-800">${formatMoney(s.budget)}</td>
-          <td class="p-3 text-right text-slate-600">${formatMoney(s.exp)}</td>
-          <td class="p-3 text-right font-bold text-blue-700 bg-blue-50/30">${formatMoney(s.actual)}</td>
-          <td class="p-3 text-right font-bold text-emerald-700 bg-emerald-50/30">${formatMoney(s.remain)}</td>
-          <td class="p-3 text-center"><span class="badge ${rateBadge}">${rate.toFixed(1)}%</span></td>
-          <td class="p-3 text-right text-slate-500">${formatMoney(s.unused)}</td>
-          <td class="p-3 text-center">
-            <button onclick="drillDownPolicy('${pName.replace(/'/g, "\'")}')" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 transition shadow-sm">
-              상세보기 <i class="fa-solid fa-arrow-right text-[10px] ml-0.5"></i>
+          <td class="p-2.5 text-center text-slate-400 font-mono">${idx + 1}</td>
+          <td class="p-2.5 font-bold text-slate-700">${pName}</td>
+          <td class="p-2.5 text-right text-slate-500">${s.count.toLocaleString()}건</td>
+          <td class="p-2.5 text-right font-semibold text-slate-800">${formatMoney(s.budget)}</td>
+          <td class="p-2.5 text-right text-slate-600">${formatMoney(s.exp)}</td>
+          <td class="p-2.5 text-right font-bold text-blue-800 bg-blue-50/20">${formatMoney(s.actual)}</td>
+          <td class="p-2.5 text-right font-bold text-emerald-800 bg-emerald-50/20">${formatMoney(s.remain)}</td>
+          <td class="p-2.5 text-center"><span class="badge ${rate >= 80 ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${rate.toFixed(1)}%</span></td>
+          <td class="p-2.5 text-right text-slate-500">${formatMoney(s.unused)}</td>
+          <td class="p-2.5 text-center">
+            <button onclick="drillDownPolicy('${pName.replace(/'/g, "\'")}')" class="px-2 py-0.5 text-[11px] font-semibold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+              상세
             </button>
           </td>
         `;
@@ -1230,9 +1017,7 @@
       const unitMap = {};
       filteredData.forEach(d => {
         const uKey = `${d.policy}:::${d.unit}`;
-        if (!unitMap[uKey]) {
-          unitMap[uKey] = { policy: d.policy, unit: d.unit, count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
-        }
+        if (!unitMap[uKey]) unitMap[uKey] = { policy: d.policy, unit: d.unit, count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
         unitMap[uKey].count++;
         unitMap[uKey].budget += d.budget_curr;
         unitMap[uKey].exp += d.exp_simple;
@@ -1246,66 +1031,32 @@
       document.getElementById('tabBadgeUnit').textContent = `${unitList.length}`;
 
       if (unitList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="p-8 text-center text-slate-400">조회된 데이터가 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" class="p-6 text-center text-slate-400">데이터 없음</td></tr>`;
         return;
       }
 
-      const totCount = unitList.reduce((a, b) => a + b.count, 0);
-      const totBudget = unitList.reduce((a, b) => a + b.budget, 0);
-      const totExp = unitList.reduce((a, b) => a + b.exp, 0);
-      const totActual = unitList.reduce((a, b) => a + b.actual, 0);
-      const totRemain = unitList.reduce((a, b) => a + b.remain, 0);
-      const totUnused = unitList.reduce((a, b) => a + b.unused, 0);
-      const totRate = totBudget > 0 ? (totActual / totBudget) * 100 : 0;
-
-      const trTotal = document.createElement('tr');
-      trTotal.className = 'bg-blue-50/70 font-extrabold text-blue-900 border-b-2 border-blue-200';
-      trTotal.innerHTML = `
-        <td class="p-3 text-center">합계</td>
-        <td class="p-3 font-semibold text-slate-600">-</td>
-        <td class="p-3 font-black">전체 단위사업 (${unitList.length}개)</td>
-        <td class="p-3 text-right">${totCount.toLocaleString()}건</td>
-        <td class="p-3 text-right">${formatMoney(totBudget)}</td>
-        <td class="p-3 text-right">${formatMoney(totExp)}</td>
-        <td class="p-3 text-right text-blue-800">${formatMoney(totActual)}</td>
-        <td class="p-3 text-right text-emerald-800">${formatMoney(totRemain)}</td>
-        <td class="p-3 text-center"><span class="badge bg-blue-600 text-white">${totRate.toFixed(1)}%</span></td>
-        <td class="p-3 text-right">${formatMoney(totUnused)}</td>
-        <td class="p-3 text-center">-</td>
-      `;
-      tbody.appendChild(trTotal);
-
       unitList.forEach((s, idx) => {
         const rate = s.budget > 0 ? (s.actual / s.budget) * 100 : 0;
-        let rateBadge = 'bg-slate-100 text-slate-700';
-        if (rate >= 90) rateBadge = 'bg-emerald-100 text-emerald-800';
-        else if (rate >= 70) rateBadge = 'bg-blue-100 text-blue-800';
-        else if (rate >= 50) rateBadge = 'bg-amber-100 text-amber-800';
-        else if (rate > 0) rateBadge = 'bg-rose-100 text-rose-800';
-
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-indigo-50/40 transition cursor-pointer';
+        tr.className = 'hover:bg-slate-50 transition cursor-pointer';
         tr.onclick = (e) => {
           if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) drillDownUnit(s.policy, s.unit);
         };
 
         tr.innerHTML = `
-          <td class="p-3 text-center text-slate-400 font-mono">${idx + 1}</td>
-          <td class="p-3 text-slate-500 font-medium whitespace-nowrap">${s.policy}</td>
-          <td class="p-3 font-bold text-slate-800 hover:text-indigo-600 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-folder-open text-indigo-400 text-xs"></i>
-            <span>${s.unit}</span>
-          </td>
-          <td class="p-3 text-right text-slate-600 font-medium">${s.count.toLocaleString()}건</td>
-          <td class="p-3 text-right font-bold text-slate-800">${formatMoney(s.budget)}</td>
-          <td class="p-3 text-right text-slate-600">${formatMoney(s.exp)}</td>
-          <td class="p-3 text-right font-bold text-blue-700 bg-blue-50/30">${formatMoney(s.actual)}</td>
-          <td class="p-3 text-right font-bold text-emerald-700 bg-emerald-50/30">${formatMoney(s.remain)}</td>
-          <td class="p-3 text-center"><span class="badge ${rateBadge}">${rate.toFixed(1)}%</span></td>
-          <td class="p-3 text-right text-slate-500">${formatMoney(s.unused)}</td>
-          <td class="p-3 text-center">
-            <button onclick="drillDownUnit('${s.policy.replace(/'/g, "\'")}', '${s.unit.replace(/'/g, "\'")}')" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-700 border border-indigo-200 transition shadow-sm">
-              상세보기 <i class="fa-solid fa-arrow-right text-[10px] ml-0.5"></i>
+          <td class="p-2.5 text-center text-slate-400 font-mono">${idx + 1}</td>
+          <td class="p-2.5 text-slate-500">${s.policy}</td>
+          <td class="p-2.5 font-bold text-slate-700">${s.unit}</td>
+          <td class="p-2.5 text-right text-slate-500">${s.count.toLocaleString()}건</td>
+          <td class="p-2.5 text-right font-semibold text-slate-800">${formatMoney(s.budget)}</td>
+          <td class="p-2.5 text-right text-slate-600">${formatMoney(s.exp)}</td>
+          <td class="p-2.5 text-right font-bold text-blue-800 bg-blue-50/20">${formatMoney(s.actual)}</td>
+          <td class="p-2.5 text-right font-bold text-emerald-800 bg-emerald-50/20">${formatMoney(s.remain)}</td>
+          <td class="p-2.5 text-center"><span class="badge ${rate >= 80 ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${rate.toFixed(1)}%</span></td>
+          <td class="p-2.5 text-right text-slate-500">${formatMoney(s.unused)}</td>
+          <td class="p-2.5 text-center">
+            <button onclick="drillDownUnit('${s.policy.replace(/'/g, "\'")}', '${s.unit.replace(/'/g, "\'")}')" class="px-2 py-0.5 text-[11px] font-semibold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+              상세
             </button>
           </td>
         `;
@@ -1321,20 +1072,7 @@
       const bizMap = {};
       filteredData.forEach(d => {
         const bKey = `${d.dept}:::${d.unit}:::${d.detail}`;
-        if (!bizMap[bKey]) {
-          bizMap[bKey] = {
-            dept: d.dept,
-            policy: d.policy,
-            unit: d.unit,
-            detail: d.detail,
-            count: 0,
-            budget: 0,
-            exp: 0,
-            actual: 0,
-            remain: 0,
-            unused: 0
-          };
-        }
+        if (!bizMap[bKey]) bizMap[bKey] = { dept: d.dept, unit: d.unit, detail: d.detail, count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
         bizMap[bKey].count++;
         bizMap[bKey].budget += d.budget_curr;
         bizMap[bKey].exp += d.exp_simple;
@@ -1348,68 +1086,33 @@
       document.getElementById('tabBadgeDetailBiz').textContent = `${bizList.length}`;
 
       if (bizList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400">조회된 데이터가 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" class="p-6 text-center text-slate-400">데이터 없음</td></tr>`;
         return;
       }
 
-      const totCount = bizList.reduce((a, b) => a + b.count, 0);
-      const totBudget = bizList.reduce((a, b) => a + b.budget, 0);
-      const totExp = bizList.reduce((a, b) => a + b.exp, 0);
-      const totActual = bizList.reduce((a, b) => a + b.actual, 0);
-      const totRemain = bizList.reduce((a, b) => a + b.remain, 0);
-      const totUnused = bizList.reduce((a, b) => a + b.unused, 0);
-      const totRate = totBudget > 0 ? (totActual / totBudget) * 100 : 0;
-
-      const trTotal = document.createElement('tr');
-      trTotal.className = 'bg-blue-50/70 font-extrabold text-blue-900 border-b-2 border-blue-200';
-      trTotal.innerHTML = `
-        <td class="p-3 text-center">합계</td>
-        <td class="p-3 text-slate-600 font-semibold">-</td>
-        <td class="p-3 text-slate-600 font-semibold">-</td>
-        <td class="p-3 font-black">전체 세부사업 (${bizList.length}개)</td>
-        <td class="p-3 text-center font-bold">${totCount.toLocaleString()}목</td>
-        <td class="p-3 text-right">${formatMoney(totBudget)}</td>
-        <td class="p-3 text-right">${formatMoney(totExp)}</td>
-        <td class="p-3 text-right text-blue-800">${formatMoney(totActual)}</td>
-        <td class="p-3 text-right text-emerald-800">${formatMoney(totRemain)}</td>
-        <td class="p-3 text-center"><span class="badge bg-blue-600 text-white">${totRate.toFixed(1)}%</span></td>
-        <td class="p-3 text-right">${formatMoney(totUnused)}</td>
-        <td class="p-3 text-center">-</td>
-      `;
-      tbody.appendChild(trTotal);
-
       bizList.forEach((s, idx) => {
         const rate = s.budget > 0 ? (s.actual / s.budget) * 100 : 0;
-        let rateBadge = 'bg-slate-100 text-slate-700';
-        if (rate >= 90) rateBadge = 'bg-emerald-100 text-emerald-800';
-        else if (rate >= 70) rateBadge = 'bg-blue-100 text-blue-800';
-        else if (rate >= 50) rateBadge = 'bg-amber-100 text-amber-800';
-        else if (rate > 0) rateBadge = 'bg-rose-100 text-rose-800';
-
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-emerald-50/40 transition cursor-pointer';
+        tr.className = 'hover:bg-slate-50 transition cursor-pointer';
         tr.onclick = (e) => {
           if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) drillDownDetailBiz(s.dept, s.detail);
         };
 
         tr.innerHTML = `
-          <td class="p-3 text-center text-slate-400 font-mono">${idx + 1}</td>
-          <td class="p-3 text-slate-600 font-semibold whitespace-nowrap">${s.dept}</td>
-          <td class="p-3 text-slate-500 font-medium whitespace-nowrap">${s.unit}</td>
-          <td class="p-3 font-bold text-slate-900 hover:text-emerald-700 transition flex items-center gap-1.5">
-            <i class="fa-solid fa-file-invoice text-emerald-500 text-xs"></i>
-            <span>${s.detail}</span>
-          </td>
-          <td class="p-3 text-center text-slate-600 font-medium">${s.count}목</td>
-          <td class="p-3 text-right font-bold text-slate-800">${formatMoney(s.budget)}</td>
-          <td class="p-3 text-right text-slate-600">${formatMoney(s.exp)}</td>
-          <td class="p-3 text-right font-bold text-blue-700 bg-blue-50/30">${formatMoney(s.actual)}</td>
-          <td class="p-3 text-right font-bold text-emerald-700 bg-emerald-50/30">${formatMoney(s.remain)}</td>
-          <td class="p-3 text-center"><span class="badge ${rateBadge}">${rate.toFixed(1)}%</span></td>
-          <td class="p-3 text-right text-slate-500">${formatMoney(s.unused)}</td>
-          <td class="p-3 text-center">
-            <button onclick="drillDownDetailBiz('${s.dept.replace(/'/g, "\'")}', '${s.detail.replace(/'/g, "\'")}')" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 transition shadow-sm">
-              상세보기 <i class="fa-solid fa-arrow-right text-[10px] ml-0.5"></i>
+          <td class="p-2.5 text-center text-slate-400 font-mono">${idx + 1}</td>
+          <td class="p-2.5 text-slate-500">${s.dept}</td>
+          <td class="p-2.5 text-slate-500">${s.unit}</td>
+          <td class="p-2.5 font-bold text-slate-800">${s.detail}</td>
+          <td class="p-2.5 text-center text-slate-500">${s.count}목</td>
+          <td class="p-2.5 text-right font-semibold text-slate-800">${formatMoney(s.budget)}</td>
+          <td class="p-2.5 text-right text-slate-600">${formatMoney(s.exp)}</td>
+          <td class="p-2.5 text-right font-bold text-blue-800 bg-blue-50/20">${formatMoney(s.actual)}</td>
+          <td class="p-2.5 text-right font-bold text-emerald-800 bg-emerald-50/20">${formatMoney(s.remain)}</td>
+          <td class="p-2.5 text-center"><span class="badge ${rate >= 80 ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${rate.toFixed(1)}%</span></td>
+          <td class="p-2.5 text-right text-slate-500">${formatMoney(s.unused)}</td>
+          <td class="p-2.5 text-center">
+            <button onclick="drillDownDetailBiz('${s.dept.replace(/'/g, "\'")}', '${s.detail.replace(/'/g, "\'")}')" class="px-2 py-0.5 text-[11px] font-semibold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+              상세
             </button>
           </td>
         `;
@@ -1417,30 +1120,19 @@
       });
     }
 
-    function drillDownPolicy(policyName) {
-      selectComboItem('policy', policyName);
-      switchTab('detail');
-    }
-
-    function drillDownUnit(policyName, unitName) {
-      selectedValues.policy = policyName;
-      document.getElementById('input_policy').value = policyName;
-      document.getElementById('clear_policy').classList.remove('hidden');
+    function drillDownPolicy(pName) { selectComboItem('policy', pName); switchTab('detail'); }
+    function drillDownUnit(pName, uName) {
+      selectedValues.policy = pName;
+      document.getElementById('input_policy').value = pName;
       updateCascadingOptions();
-
-      selectedValues.unit = unitName;
-      document.getElementById('input_unit').value = unitName;
-      document.getElementById('clear_unit').classList.remove('hidden');
-
+      selectedValues.unit = uName;
+      document.getElementById('input_unit').value = uName;
       applyFilters();
       switchTab('detail');
     }
-
-    function drillDownDetailBiz(deptName, detailBizName) {
-      if (deptName && deptName !== '-') {
-        selectComboItem('dept', deptName);
-      }
-      document.getElementById('searchInput').value = detailBizName;
+    function drillDownDetailBiz(dName, bName) {
+      if (dName && dName !== '-') selectComboItem('dept', dName);
+      document.getElementById('searchInput').value = bName;
       applyFilters();
       switchTab('detail');
     }
@@ -1454,38 +1146,30 @@
       const pageData = filteredData.slice(startIdx, endIdx);
 
       if (pageData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400">조건에 맞는 데이터가 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400">데이터 없음</td></tr>`;
       } else {
         pageData.forEach(d => {
           const tr = document.createElement('tr');
           tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
 
-          let rateBadgeClass = 'bg-slate-100 text-slate-700';
-          if (d.rate >= 90) rateBadgeClass = 'bg-emerald-100 text-emerald-800';
-          else if (d.rate >= 70) rateBadgeClass = 'bg-blue-100 text-blue-800';
-          else if (d.rate >= 50) rateBadgeClass = 'bg-amber-100 text-amber-800';
-          else if (d.rate > 0) rateBadgeClass = 'bg-rose-100 text-rose-800';
-
           tr.innerHTML = `
-            <td class="p-3 font-semibold text-slate-700 whitespace-nowrap">${d.dept}</td>
-            <td class="p-3">
+            <td class="p-2.5 text-slate-600">${d.dept}</td>
+            <td class="p-2.5">
               <div class="font-bold text-slate-800">${d.detail}</div>
               <div class="text-[11px] text-slate-400 truncate max-w-xs">${d.task}</div>
             </td>
-            <td class="p-3 whitespace-nowrap">
-              <div class="font-semibold text-slate-800">${d.mok_detail}</div>
-              <div class="text-[11px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
-                <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">${d.mok_code || '-'}</span>
-              </div>
+            <td class="p-2.5 whitespace-nowrap">
+              <div class="font-medium text-slate-800">${d.mok_detail}</div>
+              <div class="text-[10px] text-slate-400 font-mono">${d.mok_code || '-'}</div>
             </td>
-            <td class="p-3 text-right font-semibold text-slate-800">${formatMoney(d.budget_curr)}</td>
-            <td class="p-3 text-right text-slate-600">${formatMoney(d.exp_simple)}</td>
-            <td class="p-3 text-right font-bold text-blue-700 bg-blue-50/40">${formatMoney(d.actual_exp)}</td>
-            <td class="p-3 text-right font-bold text-emerald-700 bg-emerald-50/40">${formatMoney(d.actual_remain)}</td>
-            <td class="p-3 text-center">
-              <span class="badge ${rateBadgeClass}">${d.rate.toFixed(1)}%</span>
+            <td class="p-2.5 text-right font-medium text-slate-800">${formatMoney(d.budget_curr)}</td>
+            <td class="p-2.5 text-right text-slate-600">${formatMoney(d.exp_simple)}</td>
+            <td class="p-2.5 text-right font-bold text-blue-800 bg-blue-50/20">${formatMoney(d.actual_exp)}</td>
+            <td class="p-2.5 text-right font-bold text-emerald-800 bg-emerald-50/20">${formatMoney(d.actual_remain)}</td>
+            <td class="p-2.5 text-center">
+              <span class="badge ${d.rate >= 80 ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${d.rate.toFixed(1)}%</span>
             </td>
-            <td class="p-3 text-right text-slate-500">${formatMoney(d.unused)}</td>
+            <td class="p-2.5 text-right text-slate-500">${formatMoney(d.unused)}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -1503,49 +1187,31 @@
       const createBtn = (text, page, active = false, disabled = false) => {
         const btn = document.createElement('button');
         btn.innerHTML = text;
-        btn.className = `px-2.5 py-1 text-xs rounded-lg font-bold transition ${
-          active ? 'bg-blue-600 text-white shadow' :
-          disabled ? 'text-slate-300 cursor-not-allowed' : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-200'
+        btn.className = `px-2 py-0.5 text-xs rounded font-medium transition ${
+          active ? 'bg-slate-800 text-white' :
+          disabled ? 'text-slate-300 cursor-not-allowed' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
         }`;
-        if (!disabled && !active) {
-          btn.onclick = () => { currentPage = page; renderTable(); };
-        }
+        if (!disabled && !active) btn.onclick = () => { currentPage = page; renderTable(); };
         return btn;
       };
 
-      container.appendChild(createBtn('<i class="fa-solid fa-angle-left"></i>', currentPage - 1, false, currentPage === 1));
-
+      container.appendChild(createBtn('‹', currentPage - 1, false, currentPage === 1));
       let start = Math.max(1, currentPage - 2);
       let end = Math.min(totalPages, start + 4);
       if (end - start < 4) start = Math.max(1, end - 4);
-
-      for (let p = start; p <= end; p++) {
-        container.appendChild(createBtn(p, p, p === currentPage));
-      }
-
-      container.appendChild(createBtn('<i class="fa-solid fa-angle-right"></i>', currentPage + 1, false, currentPage === totalPages));
+      for (let p = start; p <= end; p++) container.appendChild(createBtn(p, p, p === currentPage));
+      container.appendChild(createBtn('›', currentPage + 1, false, currentPage === totalPages));
     }
 
-    function changePageSize(size) {
-      pageSize = Number(size);
-      currentPage = 1;
-      renderTable();
-    }
+    function changePageSize(size) { pageSize = Number(size); currentPage = 1; renderTable(); }
 
     function setUnit(unit) {
       currentUnit = unit;
       ['btnUnitWon', 'btnUnitThousand', 'btnUnitMillion', 'btnUnitHundredMillion'].forEach(id => {
-        const btn = document.getElementById(id);
-        btn.className = 'px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition';
+        document.getElementById(id).className = 'px-2.5 py-1 rounded-md font-medium text-slate-600 hover:text-slate-900 transition';
       });
-      const activeBtnMap = {
-        'won': 'btnUnitWon',
-        'thousand': 'btnUnitThousand',
-        'million': 'btnUnitMillion',
-        'hundredMillion': 'btnUnitHundredMillion'
-      };
-      const activeBtn = document.getElementById(activeBtnMap[unit]);
-      activeBtn.className = 'px-3 py-1.5 rounded-lg font-bold bg-white text-blue-600 shadow-sm transition';
+      const activeBtnMap = { 'won': 'btnUnitWon', 'thousand': 'btnUnitThousand', 'million': 'btnUnitMillion', 'hundredMillion': 'btnUnitHundredMillion' };
+      document.getElementById(activeBtnMap[unit]).className = 'px-2.5 py-1 rounded-md font-bold bg-white text-slate-800 shadow-sm transition';
 
       updateKPIs();
       renderTable();
@@ -1558,440 +1224,49 @@
       if (num === null || num === undefined || isNaN(num)) return '0';
       let divisor = 1;
       let suffix = '';
-
       if (currentUnit === 'thousand') { divisor = 1000; suffix = '천원'; }
       else if (currentUnit === 'million') { divisor = 1000000; suffix = '백만원'; }
       else if (currentUnit === 'hundredMillion') { divisor = 100000000; suffix = '억원'; }
-
-      const val = num / divisor;
-      return Math.round(val).toLocaleString() + (suffix ? ' ' + suffix : '');
+      return Math.round(num / divisor).toLocaleString() + (suffix ? ' ' + suffix : '');
     }
 
     function copyCurrentTable() {
-      if (!filteredData.length) {
-        alert('복사할 데이터가 없습니다.');
-        return;
-      }
-
-      let tsv = '';
-      if (activeTab === 'policy') {
-        tsv = '정책사업명\t사업건수\t예산현액\t단순지출금액\t실제지출금액\t실제지출잔액\t집행률\t불용액\n';
-        const pMap = {};
-        filteredData.forEach(d => {
-          const p = d.policy || '(미지정)';
-          if (!pMap[p]) pMap[p] = { count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
-          pMap[p].count++;
-          pMap[p].budget += d.budget_curr;
-          pMap[p].exp += d.exp_simple;
-          pMap[p].actual += d.actual_exp;
-          pMap[p].remain += d.actual_remain;
-          pMap[p].unused += d.unused;
-        });
-        Object.entries(pMap).sort((a,b) => b[1].budget - a[1].budget).forEach(([p, s]) => {
-          const r = s.budget > 0 ? (s.actual / s.budget * 100).toFixed(1) + '%' : '0.0%';
-          tsv += `${p}\t${s.count}\t${Math.round(s.budget)}\t${Math.round(s.exp)}\t${Math.round(s.actual)}\t${Math.round(s.remain)}\t${r}\t${Math.round(s.unused)}\n`;
-        });
-      } else if (activeTab === 'unit') {
-        tsv = '상위정책사업\t단위사업명\t사업건수\t예산현액\t단순지출금액\t실제지출금액\t실제지출잔액\t집행률\t불용액\n';
-        const uMap = {};
-        filteredData.forEach(d => {
-          const uKey = `${d.policy}:::${d.unit}`;
-          if (!uMap[uKey]) uMap[uKey] = { policy: d.policy, unit: d.unit, count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
-          uMap[uKey].count++;
-          uMap[uKey].budget += d.budget_curr;
-          uMap[uKey].exp += d.exp_simple;
-          uMap[uKey].actual += d.actual_exp;
-          uMap[uKey].remain += d.actual_remain;
-          uMap[uKey].unused += d.unused;
-        });
-        Object.values(uMap).sort((a,b) => b.budget - a.budget).forEach(s => {
-          const r = s.budget > 0 ? (s.actual / s.budget * 100).toFixed(1) + '%' : '0.0%';
-          tsv += `${s.policy}\t${s.unit}\t${s.count}\t${Math.round(s.budget)}\t${Math.round(s.exp)}\t${Math.round(s.actual)}\t${Math.round(s.remain)}\t${r}\t${Math.round(s.unused)}\n`;
-        });
-      } else if (activeTab === 'detailBiz') {
-        tsv = '소관부서\t상위단위사업\t세부사업명\t편성비목수\t예산현액\t단순지출금액\t실제지출금액\t실제지출잔액\t집행률\t불용액\n';
-        const bMap = {};
-        filteredData.forEach(d => {
-          const bKey = `${d.dept}:::${d.unit}:::${d.detail}`;
-          if (!bMap[bKey]) bMap[bKey] = { dept: d.dept, unit: d.unit, detail: d.detail, count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
-          bMap[bKey].count++;
-          bMap[bKey].budget += d.budget_curr;
-          bMap[bKey].exp += d.exp_simple;
-          bMap[bKey].actual += d.actual_exp;
-          bMap[bKey].remain += d.actual_remain;
-          bMap[bKey].unused += d.unused;
-        });
-        Object.values(bMap).sort((a,b) => b.budget - a.budget).forEach(s => {
-          const r = s.budget > 0 ? (s.actual / s.budget * 100).toFixed(1) + '%' : '0.0%';
-          tsv += `${s.dept}\t${s.unit}\t${s.detail}\t${s.count}\t${Math.round(s.budget)}\t${Math.round(s.exp)}\t${Math.round(s.actual)}\t${Math.round(s.remain)}\t${r}\t${Math.round(s.unused)}\n`;
-        });
-      } else {
-        tsv = '소관부서\t세부사업\t단위업무\t비목코드\t원가통계비목\t예산현액\t단순지출액\t실제지출액\t실제잔액\t집행률\t불용액\n';
-        filteredData.forEach(d => {
-          tsv += `${d.dept}\t${d.detail}\t${d.task}\t${d.mok_code}\t${d.mok_detail}\t${Math.round(d.budget_curr)}\t${Math.round(d.exp_simple)}\t${Math.round(d.actual_exp)}\t${Math.round(d.actual_remain)}\t${d.rate.toFixed(1)}%\t${Math.round(d.unused)}\n`;
-        });
-      }
-
-      navigator.clipboard.writeText(tsv).then(() => {
-        alert('현재 선택된 탭의 표 데이터가 클립보드에 복사되었습니다.\n엑셀 또는 한글(HWP) 문서에 바로 붙여넣기(Ctrl+V) 하실 수 있습니다.');
-      }).catch(err => {
-        console.error(err);
-        alert('클립보드 복사 실패: ' + err.message);
+      if (!filteredData.length) { alert('복사할 데이터가 없습니다.'); return; }
+      let tsv = '소관부서\t세부사업\t단위업무\t비목코드\t원가통계비목\t예산현액\t지출액\t실제지출액\t실제잔액\t집행률\t불용액\n';
+      filteredData.forEach(d => {
+        tsv += `${d.dept}\t${d.detail}\t${d.task}\t${d.mok_code}\t${d.mok_detail}\t${Math.round(d.budget_curr)}\t${Math.round(d.exp_simple)}\t${Math.round(d.actual_exp)}\t${Math.round(d.actual_remain)}\t${d.rate.toFixed(1)}%\t${Math.round(d.unused)}\n`;
       });
+      navigator.clipboard.writeText(tsv).then(() => {
+        alert('표 데이터가 클립보드에 복사되었습니다. 한글(HWP)이나 엑셀에 붙여넣으세요.');
+      }).catch(err => alert('복사 실패: ' + err.message));
     }
 
     async function exportToExcel() {
-      if (!filteredData.length) {
-        alert('내보낼 데이터가 없습니다.');
-        return;
-      }
-
+      if (!filteredData.length) { alert('내보낼 데이터가 없습니다.'); return; }
       const btn = document.getElementById('btnExport');
-      const originalHTML = btn.innerHTML;
-      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1.5"></i>보고서 생성 중...`;
+      btn.innerHTML = `처리 중...`;
       btn.disabled = true;
 
       try {
         const wb = new ExcelJS.Workbook();
-        wb.creator = '부산광역시교육청 세출예산 집행분석 시스템';
-        wb.created = new Date();
-
-        // 1) Sheet: 세부 집행내역
-        const wsDetail = wb.addWorksheet('세부 집행내역', { views: [{ state: 'frozen', ySplit: 6, showGridLines: true }] });
-        wsDetail.mergeCells('A2:U2');
-        wsDetail.getCell('A2').value = '부산광역시교육청 세출예산 세부 집행내역 보고서';
-        wsDetail.getCell('A2').font = { name: '맑은 고딕', size: 15, bold: true, color: { argb: 'FF0F172A' } };
-        wsDetail.getCell('A2').alignment = { vertical: 'middle' };
-        wsDetail.getRow(2).height = 28;
-
-        const nowStr = new Date().toLocaleString('ko-KR');
-        wsDetail.mergeCells('A3:U3');
-        wsDetail.getCell('A3').value = `작성기준: K-에듀파인 집행실적(102-A) | 출력일시: ${nowStr} | 추출건수: ${filteredData.length.toLocaleString()}건 | 금액단위: 원, %`;
-        wsDetail.getCell('A3').font = { name: '맑은 고딕', size: 9, color: { argb: 'FF64748B' } };
-        wsDetail.getCell('A3').alignment = { vertical: 'middle' };
-        wsDetail.getRow(3).height = 18;
-
-        const headers = [
-          '소관부서', '단위업무기관', '단위업무부서', '정책사업', '단위사업', '세부사업', '단위업무',
-          '목그룹', '비목코드', '원가통계비목', '본예산액', '추경예산액', '예산현액', '원인행위금액', '단순지출금액',
-          '일상경비교부액', '일상경비지급액', '실제지출금액', '실제지출잔액', '불용액', '실집행률'
-        ];
-
-        const headerRow = wsDetail.getRow(5);
-        headerRow.values = headers;
-        headerRow.height = 26;
-        headerRow.eachCell((cell) => {
-          cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
-        });
-
-        const totalRow = wsDetail.getRow(6);
-        totalRow.height = 24;
-        totalRow.getCell(1).value = '합계 (Total)';
-        totalRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-
-        const startR = 7;
-        const endR = startR + filteredData.length - 1;
-        const colLetters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U'];
-        for (let colIdx = 11; colIdx <= 20; colIdx++) {
-          const colLet = colLetters[colIdx - 1];
-          const cell = totalRow.getCell(colIdx);
-          cell.value = { formula: `SUBTOTAL(9, ${colLet}${startR}:${colLet}${endR})` };
-          cell.numFmt = '#,##0';
-          cell.alignment = { horizontal: 'right', vertical: 'middle' };
-        }
-        const rateCell = totalRow.getCell(21);
-        rateCell.value = { formula: `IF(M6>0, R6/M6, 0)` };
-        rateCell.numFmt = '0.0%';
-        rateCell.alignment = { horizontal: 'center', vertical: 'middle' };
-
-        totalRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
-          if (colNum <= 21) {
-            cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FF0F172A' } };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
-            cell.border = { top: { style: 'thin', color: { argb: 'FF94A3B8' } }, bottom: { style: 'double', color: { argb: 'FF1E293B' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
-          }
-        });
-
-        filteredData.forEach((d, idx) => {
-          const curR = startR + idx;
-          const r = wsDetail.getRow(curR);
-          r.height = 20;
-          const isZebra = idx % 2 === 1;
-          r.values = [
-            d.dept, d.unit_org, d.unit_dept, d.policy, d.unit, d.detail, d.task,
-            d.mok_group, d.mok_code, d.mok_detail,
-            d.budget_init, d.budget_sup, d.budget_curr, d.contract, d.exp_simple,
-            d.grant, d.pay, d.actual_exp, d.actual_remain, d.unused,
-            d.budget_curr > 0 ? (d.actual_exp / d.budget_curr) : 0
-          ];
-
-          for (let c = 1; c <= 21; c++) {
-            const cell = r.getCell(c);
-            cell.font = { name: '맑은 고딕', size: 9, color: { argb: 'FF334155' } };
-            cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
-            if (isZebra) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-
-            if ([1,2,3,4,5,6,7,10].includes(c)) {
-              cell.alignment = { horizontal: 'left', vertical: 'middle' };
-            } else if (c === 8 || c === 9) {
-              cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            } else if (c >= 11 && c <= 20) {
-              cell.alignment = { horizontal: 'right', vertical: 'middle' };
-              cell.numFmt = '#,##0';
-              if (c === 13) cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FF0F172A' } };
-              else if (c === 18) { cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FF1E40AF' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } }; }
-              else if (c === 19) { cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FF047857' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECFDF5' } }; }
-            } else if (c === 21) {
-              cell.alignment = { horizontal: 'center', vertical: 'middle' };
-              cell.numFmt = '0.0%';
-              const val = r.values[20];
-              if (val < 0.5) cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FFDC2626' } };
-              else if (val >= 0.9) cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FF047857' } };
-            }
-          }
-        });
-
-        const colWidths = [20, 22, 20, 18, 20, 24, 28, 12, 14, 20, 16, 16, 17, 16, 16, 16, 16, 17, 17, 16, 12];
-        colWidths.forEach((w, i) => { wsDetail.getColumn(i + 1).width = w; });
-        wsDetail.autoFilter = { from: { row: 5, column: 1 }, to: { row: endR, column: 21 } };
-
-        // 2) Sheet: 정책사업별 요약
-        const wsPolicy = wb.addWorksheet('정책사업별 요약', { views: [{ showGridLines: true }] });
-        wsPolicy.mergeCells('A2:H2');
-        wsPolicy.getCell('A2').value = '부산광역시교육청 정책사업별 집행실적 소계 요약표';
-        wsPolicy.getCell('A2').font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: 'FF0F172A' } };
-        wsPolicy.getRow(2).height = 26;
-
-        const pHeaders = ['정책사업명', '사업건수', '예산현액', '단순지출액', '실제지출금액', '실제지출잔액', '집행률', '불용액'];
-        const pHeaderRow = wsPolicy.getRow(4);
-        pHeaderRow.values = pHeaders;
-        pHeaderRow.height = 24;
-        pHeaderRow.eachCell(cell => {
-          cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        });
-
-        const pMap = {};
+        const wsDetail = wb.addWorksheet('세부 집행내역');
+        wsDetail.addRow(['소관부서', '단위업무부서', '정책사업', '단위사업', '세부사업', '단위업무', '비목코드', '원가통계비목', '예산현액', '단순지출액', '실제지출금액', '실제지출잔액', '집행률', '불용액']);
+        
         filteredData.forEach(d => {
-          const p = d.policy || '(미지정)';
-          if (!pMap[p]) pMap[p] = { count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
-          pMap[p].count++;
-          pMap[p].budget += d.budget_curr;
-          pMap[p].exp += d.exp_simple;
-          pMap[p].actual += d.actual_exp;
-          pMap[p].remain += d.actual_remain;
-          pMap[p].unused += d.unused;
+          wsDetail.addRow([
+            d.dept, d.unit_dept, d.policy, d.unit, d.detail, d.task, d.mok_code, d.mok_detail,
+            d.budget_curr, d.exp_simple, d.actual_exp, d.actual_remain,
+            d.budget_curr > 0 ? (d.actual_exp / d.budget_curr) : 0, d.unused
+          ]);
         });
-
-        let pR = 5;
-        Object.entries(pMap).sort((a,b) => b[1].budget - a[1].budget).forEach(([pName, s], i) => {
-          const row = wsPolicy.getRow(pR);
-          row.height = 20;
-          row.values = [pName, s.count, s.budget, s.exp, s.actual, s.remain, s.budget > 0 ? (s.actual / s.budget) : 0, s.unused];
-          row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
-          row.getCell(2).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(3).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(4).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(5).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' };
-          row.getCell(8).alignment = { horizontal: 'right', vertical: 'middle' };
-
-          row.getCell(2).numFmt = '#,##0"건"';
-          row.getCell(3).numFmt = '#,##0';
-          row.getCell(4).numFmt = '#,##0';
-          row.getCell(5).numFmt = '#,##0';
-          row.getCell(6).numFmt = '#,##0';
-          row.getCell(7).numFmt = '0.0%';
-          row.getCell(8).numFmt = '#,##0';
-
-          for (let c = 1; c <= 8; c++) {
-            const cell = row.getCell(c);
-            cell.font = { name: '맑은 고딕', size: 9, color: { argb: 'FF334155' } };
-            cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
-            if (i % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-          }
-          pR++;
-        });
-
-        wsPolicy.getColumn(1).width = 24;
-        wsPolicy.getColumn(2).width = 14;
-        wsPolicy.getColumn(3).width = 20;
-        wsPolicy.getColumn(4).width = 20;
-        wsPolicy.getColumn(5).width = 20;
-        wsPolicy.getColumn(6).width = 20;
-        wsPolicy.getColumn(7).width = 14;
-        wsPolicy.getColumn(8).width = 20;
-
-        // 3) Sheet: 단위사업별 요약
-        const wsUnit = wb.addWorksheet('단위사업별 요약', { views: [{ showGridLines: true }] });
-        wsUnit.mergeCells('A2:I2');
-        wsUnit.getCell('A2').value = '부산광역시교육청 단위사업별 집행실적 소계 요약표';
-        wsUnit.getCell('A2').font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: 'FF0F172A' } };
-        wsUnit.getRow(2).height = 26;
-
-        const uHeaders = ['상위 정책사업', '단위사업명', '사업건수', '예산현액', '단순지출액', '실제지출금액', '실제지출잔액', '집행률', '불용액'];
-        const uHeaderRow = wsUnit.getRow(4);
-        uHeaderRow.values = uHeaders;
-        uHeaderRow.height = 24;
-        uHeaderRow.eachCell(cell => {
-          cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4338CA' } };
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        });
-
-        const uMap = {};
-        filteredData.forEach(d => {
-          const uKey = `${d.policy}:::${d.unit}`;
-          if (!uMap[uKey]) uMap[uKey] = { policy: d.policy, unit: d.unit, count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
-          uMap[uKey].count++;
-          uMap[uKey].budget += d.budget_curr;
-          uMap[uKey].exp += d.exp_simple;
-          uMap[uKey].actual += d.actual_exp;
-          uMap[uKey].remain += d.actual_remain;
-          uMap[uKey].unused += d.unused;
-        });
-
-        let uR = 5;
-        Object.values(uMap).sort((a,b) => b.budget - a.budget).forEach((s, i) => {
-          const row = wsUnit.getRow(uR);
-          row.height = 20;
-          row.values = [s.policy, s.unit, s.count, s.budget, s.exp, s.actual, s.remain, s.budget > 0 ? (s.actual / s.budget) : 0, s.unused];
-          row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
-          row.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
-          row.getCell(3).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(4).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(5).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(7).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
-          row.getCell(9).alignment = { horizontal: 'right', vertical: 'middle' };
-
-          row.getCell(3).numFmt = '#,##0"건"';
-          row.getCell(4).numFmt = '#,##0';
-          row.getCell(5).numFmt = '#,##0';
-          row.getCell(6).numFmt = '#,##0';
-          row.getCell(7).numFmt = '#,##0';
-          row.getCell(8).numFmt = '0.0%';
-          row.getCell(9).numFmt = '#,##0';
-
-          for (let c = 1; c <= 9; c++) {
-            const cell = row.getCell(c);
-            cell.font = { name: '맑은 고딕', size: 9, color: { argb: 'FF334155' } };
-            cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
-            if (i % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-          }
-          uR++;
-        });
-
-        wsUnit.getColumn(1).width = 22;
-        wsUnit.getColumn(2).width = 24;
-        wsUnit.getColumn(3).width = 14;
-        wsUnit.getColumn(4).width = 20;
-        wsUnit.getColumn(5).width = 20;
-        wsUnit.getColumn(6).width = 20;
-        wsUnit.getColumn(7).width = 20;
-        wsUnit.getColumn(8).width = 14;
-        wsUnit.getColumn(9).width = 20;
-
-        // 4) Sheet: 세부사업별 요약
-        const wsDetailBiz = wb.addWorksheet('세부사업별 요약', { views: [{ showGridLines: true }] });
-        wsDetailBiz.mergeCells('A2:J2');
-        wsDetailBiz.getCell('A2').value = '부산광역시교육청 세부사업별 집행실적 소계 요약표';
-        wsDetailBiz.getCell('A2').font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: 'FF0F172A' } };
-        wsDetailBiz.getRow(2).height = 26;
-
-        const bHeaders = ['소관부서', '상위 단위사업', '세부사업명', '비목수', '예산현액', '단순지출액', '실제지출금액', '실제지출잔액', '집행률', '불용액'];
-        const bHeaderRow = wsDetailBiz.getRow(4);
-        bHeaderRow.values = bHeaders;
-        bHeaderRow.height = 24;
-        bHeaderRow.eachCell(cell => {
-          cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF047857' } };
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        });
-
-        const bMap = {};
-        filteredData.forEach(d => {
-          const bKey = `${d.dept}:::${d.unit}:::${d.detail}`;
-          if (!bMap[bKey]) bMap[bKey] = { dept: d.dept, unit: d.unit, detail: d.detail, count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
-          bMap[bKey].count++;
-          bMap[bKey].budget += d.budget_curr;
-          bMap[bKey].exp += d.exp_simple;
-          bMap[bKey].actual += d.actual_exp;
-          bMap[bKey].remain += d.actual_remain;
-          bMap[bKey].unused += d.unused;
-        });
-
-        let bR = 5;
-        Object.values(bMap).sort((a,b) => b.budget - a.budget).forEach((s, i) => {
-          const row = wsDetailBiz.getRow(bR);
-          row.height = 20;
-          row.values = [s.dept, s.unit, s.detail, s.count, s.budget, s.exp, s.actual, s.remain, s.budget > 0 ? (s.actual / s.budget) : 0, s.unused];
-          row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
-          row.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
-          row.getCell(3).alignment = { horizontal: 'left', vertical: 'middle' };
-          row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
-          row.getCell(5).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(7).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(8).alignment = { horizontal: 'right', vertical: 'middle' };
-          row.getCell(9).alignment = { horizontal: 'center', vertical: 'middle' };
-          row.getCell(10).alignment = { horizontal: 'right', vertical: 'middle' };
-
-          row.getCell(4).numFmt = '#,##0"목"';
-          row.getCell(5).numFmt = '#,##0';
-          row.getCell(6).numFmt = '#,##0';
-          row.getCell(7).numFmt = '#,##0';
-          row.getCell(8).numFmt = '#,##0';
-          row.getCell(9).numFmt = '0.0%';
-          row.getCell(10).numFmt = '#,##0';
-
-          for (let c = 1; c <= 10; c++) {
-            const cell = row.getCell(c);
-            cell.font = { name: '맑은 고딕', size: 9, color: { argb: 'FF334155' } };
-            cell.border = { top: { style: 'thin', color: { argb: 'FFE2E8F0' } }, left: { style: 'thin', color: { argb: 'FFE2E8F0' } }, bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } }, right: { style: 'thin', color: { argb: 'FFE2E8F0' } } };
-            if (i % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
-          }
-          bR++;
-        });
-
-        wsDetailBiz.getColumn(1).width = 20;
-        wsDetailBiz.getColumn(2).width = 22;
-        wsDetailBiz.getColumn(3).width = 26;
-        wsDetailBiz.getColumn(4).width = 12;
-        wsDetailBiz.getColumn(5).width = 20;
-        wsDetailBiz.getColumn(6).width = 20;
-        wsDetailBiz.getColumn(7).width = 20;
-        wsDetailBiz.getColumn(8).width = 20;
-        wsDetailBiz.getColumn(9).width = 14;
-        wsDetailBiz.getColumn(10).width = 20;
 
         const buffer = await wb.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const fileName = `부산교육청_세출예산_집행실적_분석보고서_${new Date().toISOString().slice(0,10)}.xlsx`;
-
-        if (window.saveAs) {
-          window.saveAs(blob, fileName);
-        } else {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-        }
+        window.saveAs(blob, `부산교육청_세출예산_집행실적_${new Date().toISOString().slice(0,10)}.xlsx`);
       } catch (err) {
-        console.error('Excel Export Error:', err);
         alert('엑셀 생성 오류: ' + err.message);
       } finally {
-        btn.innerHTML = originalHTML;
+        btn.innerHTML = `<i class="fa-solid fa-file-excel text-xs mr-1"></i><span>엑셀 다운로드</span>`;
         btn.disabled = false;
       }
     }
