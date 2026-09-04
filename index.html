@@ -521,7 +521,7 @@
 
   </main>
 
-<footer class="bg-white border-t border-slate-200 py-5 text-center text-xs text-slate-500 mt-auto space-y-1">
+  <footer class="bg-white border-t border-slate-200 py-5 text-center text-xs text-slate-500 mt-auto space-y-1">
     <p class="font-bold text-slate-700">
       Designed & Developed by 윤상 &copy; 2026. All Rights Reserved.
     </p>
@@ -1241,32 +1241,411 @@
       }).catch(err => alert('복사 실패: ' + err.message));
     }
 
+    /* =========================================================================
+       ★ 고품질 보고서형 엑셀 다운로드 (1220 버전 서식 폼 완벽 적용)
+       ========================================================================= */
     async function exportToExcel() {
-      if (!filteredData.length) { alert('내보낼 데이터가 없습니다.'); return; }
+      if (!filteredData.length) {
+        alert('내보낼 데이터가 없습니다.');
+        return;
+      }
+
       const btn = document.getElementById('btnExport');
-      btn.innerHTML = `처리 중...`;
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i><span>보고서 생성 중...</span>`;
       btn.disabled = true;
 
       try {
         const wb = new ExcelJS.Workbook();
-        const wsDetail = wb.addWorksheet('세부 집행내역');
-        wsDetail.addRow(['소관부서', '단위업무부서', '정책사업', '단위사업', '세부사업', '단위업무', '비목코드', '원가통계비목', '예산현액', '단순지출액', '실제지출금액', '실제지출잔액', '집행률', '불용액']);
-        
-        filteredData.forEach(d => {
-          wsDetail.addRow([
-            d.dept, d.unit_dept, d.policy, d.unit, d.detail, d.task, d.mok_code, d.mok_detail,
-            d.budget_curr, d.exp_simple, d.actual_exp, d.actual_remain,
-            d.budget_curr > 0 ? (d.actual_exp / d.budget_curr) : 0, d.unused
-          ]);
+        wb.creator = '부산광역시교육청 세출예산 집행분석 시스템';
+        wb.created = new Date();
+
+        // -------------------------------------------------------------
+        // 1) Sheet: 세부 집행내역
+        // -------------------------------------------------------------
+        const wsDetail = wb.addWorksheet('세부 집행내역', {
+          views: [{ state: 'frozen', ySplit: 6, showGridLines: true }]
         });
 
+        wsDetail.mergeCells('A2:U2');
+        wsDetail.getCell('A2').value = '부산광역시교육청 세출예산 세부 집행내역 보고서';
+        wsDetail.getCell('A2').font = { name: '맑은 고딕', size: 15, bold: true, color: { argb: 'FF0F172A' } };
+        wsDetail.getCell('A2').alignment = { vertical: 'middle' };
+        wsDetail.getRow(2).height = 28;
+
+        const nowStr = new Date().toLocaleString('ko-KR');
+        wsDetail.mergeCells('A3:U3');
+        wsDetail.getCell('A3').value = `작성기준: K-에듀파인 집행실적(102-A) | 출력일시: ${nowStr} | 추출건수: ${filteredData.length.toLocaleString()}건 | 금액단위: 원, %`;
+        wsDetail.getCell('A3').font = { name: '맑은 고딕', size: 9, color: { argb: 'FF64748B' } };
+        wsDetail.getCell('A3').alignment = { vertical: 'middle' };
+        wsDetail.getRow(3).height = 18;
+
+        const headers = [
+          '소관부서', '단위업무기관', '단위업무부서', '정책사업', '단위사업', '세부사업', '단위업무',
+          '목그룹', '비목코드', '원가통계비목', '본예산액', '추경예산액', '예산현액', '원인행위금액', '단순지출금액',
+          '일상경비교부액', '일상경비지급액', '실제지출금액', '실제지출잔액', '불용액', '실집행률'
+        ];
+
+        const headerRow = wsDetail.getRow(5);
+        headerRow.values = headers;
+        headerRow.height = 26;
+        headerRow.eachCell((cell) => {
+          cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+          };
+        });
+
+        const totalRow = wsDetail.getRow(6);
+        totalRow.height = 24;
+        totalRow.getCell(1).value = '합계 (Total)';
+        totalRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+        const startR = 7;
+        const endR = startR + filteredData.length - 1;
+        const colLetters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U'];
+
+        for (let colIdx = 11; colIdx <= 20; colIdx++) {
+          const colLet = colLetters[colIdx - 1];
+          const cell = totalRow.getCell(colIdx);
+          cell.value = { formula: `SUBTOTAL(9, ${colLet}${startR}:${colLet}${endR})` };
+          cell.numFmt = '#,##0';
+          cell.alignment = { horizontal: 'right', vertical: 'middle' };
+        }
+
+        const rateCell = totalRow.getCell(21);
+        rateCell.value = { formula: `IF(M6>0, R6/M6, 0)` };
+        rateCell.numFmt = '0.0%';
+        rateCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        totalRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+          if (colNum <= 21) {
+            cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FF0F172A' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FF94A3B8' } },
+              bottom: { style: 'double', color: { argb: 'FF1E293B' } },
+              left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+            };
+          }
+        });
+
+        filteredData.forEach((d, idx) => {
+          const curR = startR + idx;
+          const r = wsDetail.getRow(curR);
+          r.height = 20;
+          const isZebra = idx % 2 === 1;
+          r.values = [
+            d.dept, d.unit_org, d.unit_dept, d.policy, d.unit, d.detail, d.task,
+            d.mok_group, d.mok_code, d.mok_detail,
+            d.budget_init, d.budget_sup, d.budget_curr, d.contract, d.exp_simple,
+            d.grant, d.pay, d.actual_exp, d.actual_remain, d.unused,
+            d.budget_curr > 0 ? (d.actual_exp / d.budget_curr) : 0
+          ];
+
+          for (let c = 1; c <= 21; c++) {
+            const cell = r.getCell(c);
+            cell.font = { name: '맑은 고딕', size: 9, color: { argb: 'FF334155' } };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+            };
+            if (isZebra) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+
+            if ([1,2,3,4,5,6,7,10].includes(c)) {
+              cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            } else if (c === 8 || c === 9) {
+              cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            } else if (c >= 11 && c <= 20) {
+              cell.alignment = { horizontal: 'right', vertical: 'middle' };
+              cell.numFmt = '#,##0';
+              if (c === 13) {
+                cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FF0F172A' } };
+              } else if (c === 18) {
+                cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FF1E40AF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
+              } else if (c === 19) {
+                cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FF047857' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECFDF5' } };
+              }
+            } else if (c === 21) {
+              cell.alignment = { horizontal: 'center', vertical: 'middle' };
+              cell.numFmt = '0.0%';
+              const val = r.values[20];
+              if (val < 0.5) cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FFDC2626' } };
+              else if (val >= 0.9) cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FF047857' } };
+            }
+          }
+        });
+
+        const colWidths = [20, 22, 20, 18, 20, 24, 28, 12, 14, 20, 16, 16, 17, 16, 16, 16, 16, 17, 17, 16, 12];
+        colWidths.forEach((w, i) => { wsDetail.getColumn(i + 1).width = w; });
+        wsDetail.autoFilter = { from: { row: 5, column: 1 }, to: { row: endR, column: 21 } };
+
+        // -------------------------------------------------------------
+        // 2) Sheet: 정책사업별 요약
+        // -------------------------------------------------------------
+        const wsPolicy = wb.addWorksheet('정책사업별 요약', { views: [{ showGridLines: true }] });
+        wsPolicy.mergeCells('A2:H2');
+        wsPolicy.getCell('A2').value = '부산광역시교육청 정책사업별 집행실적 소계 요약표';
+        wsPolicy.getCell('A2').font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: 'FF0F172A' } };
+        wsPolicy.getRow(2).height = 26;
+
+        const pHeaders = ['정책사업명', '사업건수', '예산현액', '단순지출액', '실제지출금액', '실제지출잔액', '집행률', '불용액'];
+        const pHeaderRow = wsPolicy.getRow(4);
+        pHeaderRow.values = pHeaders;
+        pHeaderRow.height = 24;
+        pHeaderRow.eachCell(cell => {
+          cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        });
+
+        const pMap = {};
+        filteredData.forEach(d => {
+          const p = d.policy || '(미지정)';
+          if (!pMap[p]) pMap[p] = { count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
+          pMap[p].count++;
+          pMap[p].budget += d.budget_curr;
+          pMap[p].exp += d.exp_simple;
+          pMap[p].actual += d.actual_exp;
+          pMap[p].remain += d.actual_remain;
+          pMap[p].unused += d.unused;
+        });
+
+        let pR = 5;
+        Object.entries(pMap).sort((a,b) => b[1].budget - a[1].budget).forEach(([pName, s], i) => {
+          const row = wsPolicy.getRow(pR);
+          row.height = 20;
+          row.values = [pName, s.count, s.budget, s.exp, s.actual, s.remain, s.budget > 0 ? (s.actual / s.budget) : 0, s.unused];
+          row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+          row.getCell(2).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(3).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(4).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(5).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' };
+          row.getCell(8).alignment = { horizontal: 'right', vertical: 'middle' };
+
+          row.getCell(2).numFmt = '#,##0"건"';
+          row.getCell(3).numFmt = '#,##0';
+          row.getCell(4).numFmt = '#,##0';
+          row.getCell(5).numFmt = '#,##0';
+          row.getCell(6).numFmt = '#,##0';
+          row.getCell(7).numFmt = '0.0%';
+          row.getCell(8).numFmt = '#,##0';
+
+          for (let c = 1; c <= 8; c++) {
+            const cell = row.getCell(c);
+            cell.font = { name: '맑은 고딕', size: 9, color: { argb: 'FF334155' } };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+            };
+            if (i % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+          }
+          pR++;
+        });
+
+        wsPolicy.getColumn(1).width = 24;
+        wsPolicy.getColumn(2).width = 14;
+        wsPolicy.getColumn(3).width = 20;
+        wsPolicy.getColumn(4).width = 20;
+        wsPolicy.getColumn(5).width = 20;
+        wsPolicy.getColumn(6).width = 20;
+        wsPolicy.getColumn(7).width = 14;
+        wsPolicy.getColumn(8).width = 20;
+
+        // -------------------------------------------------------------
+        // 3) Sheet: 단위사업별 요약
+        // -------------------------------------------------------------
+        const wsUnit = wb.addWorksheet('단위사업별 요약', { views: [{ showGridLines: true }] });
+        wsUnit.mergeCells('A2:I2');
+        wsUnit.getCell('A2').value = '부산광역시교육청 단위사업별 집행실적 소계 요약표';
+        wsUnit.getCell('A2').font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: 'FF0F172A' } };
+        wsUnit.getRow(2).height = 26;
+
+        const uHeaders = ['상위 정책사업', '단위사업명', '사업건수', '예산현액', '단순지출액', '실제지출금액', '실제지출잔액', '집행률', '불용액'];
+        const uHeaderRow = wsUnit.getRow(4);
+        uHeaderRow.values = uHeaders;
+        uHeaderRow.height = 24;
+        uHeaderRow.eachCell(cell => {
+          cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4338CA' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        });
+
+        const uMap = {};
+        filteredData.forEach(d => {
+          const uKey = `${d.policy}:::${d.unit}`;
+          if (!uMap[uKey]) uMap[uKey] = { policy: d.policy, unit: d.unit, count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
+          uMap[uKey].count++;
+          uMap[uKey].budget += d.budget_curr;
+          uMap[uKey].exp += d.exp_simple;
+          uMap[uKey].actual += d.actual_exp;
+          uMap[uKey].remain += d.actual_remain;
+          uMap[uKey].unused += d.unused;
+        });
+
+        let uR = 5;
+        Object.values(uMap).sort((a,b) => b.budget - a.budget).forEach((s, i) => {
+          const row = wsUnit.getRow(uR);
+          row.height = 20;
+          row.values = [s.policy, s.unit, s.count, s.budget, s.exp, s.actual, s.remain, s.budget > 0 ? (s.actual / s.budget) : 0, s.unused];
+          row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+          row.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
+          row.getCell(3).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(4).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(5).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(7).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(8).alignment = { horizontal: 'center', vertical: 'middle' };
+          row.getCell(9).alignment = { horizontal: 'right', vertical: 'middle' };
+
+          row.getCell(3).numFmt = '#,##0"건"';
+          row.getCell(4).numFmt = '#,##0';
+          row.getCell(5).numFmt = '#,##0';
+          row.getCell(6).numFmt = '#,##0';
+          row.getCell(7).numFmt = '#,##0';
+          row.getCell(8).numFmt = '0.0%';
+          row.getCell(9).numFmt = '#,##0';
+
+          for (let c = 1; c <= 9; c++) {
+            const cell = row.getCell(c);
+            cell.font = { name: '맑은 고딕', size: 9, color: { argb: 'FF334155' } };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+            };
+            if (i % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+          }
+          uR++;
+        });
+
+        wsUnit.getColumn(1).width = 22;
+        wsUnit.getColumn(2).width = 24;
+        wsUnit.getColumn(3).width = 14;
+        wsUnit.getColumn(4).width = 20;
+        wsUnit.getColumn(5).width = 20;
+        wsUnit.getColumn(6).width = 20;
+        wsUnit.getColumn(7).width = 20;
+        wsUnit.getColumn(8).width = 14;
+        wsUnit.getColumn(9).width = 20;
+
+        // -------------------------------------------------------------
+        // 4) Sheet: 세부사업별 요약
+        // -------------------------------------------------------------
+        const wsDetailBiz = wb.addWorksheet('세부사업별 요약', { views: [{ showGridLines: true }] });
+        wsDetailBiz.mergeCells('A2:J2');
+        wsDetailBiz.getCell('A2').value = '부산광역시교육청 세부사업별 집행실적 소계 요약표';
+        wsDetailBiz.getCell('A2').font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: 'FF0F172A' } };
+        wsDetailBiz.getRow(2).height = 26;
+
+        const bHeaders = ['소관부서', '상위 단위사업', '세부사업명', '비목수', '예산현액', '단순지출액', '실제지출금액', '실제지출잔액', '집행률', '불용액'];
+        const bHeaderRow = wsDetailBiz.getRow(4);
+        bHeaderRow.values = bHeaders;
+        bHeaderRow.height = 24;
+        bHeaderRow.eachCell(cell => {
+          cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF047857' } };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        });
+
+        const bMap = {};
+        filteredData.forEach(d => {
+          const bKey = `${d.dept}:::${d.unit}:::${d.detail}`;
+          if (!bMap[bKey]) bMap[bKey] = { dept: d.dept, unit: d.unit, detail: d.detail, count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
+          bMap[bKey].count++;
+          bMap[bKey].budget += d.budget_curr;
+          bMap[bKey].exp += d.exp_simple;
+          bMap[bKey].actual += d.actual_exp;
+          bMap[bKey].remain += d.actual_remain;
+          bMap[bKey].unused += d.unused;
+        });
+
+        let bR = 5;
+        Object.values(bMap).sort((a,b) => b.budget - a.budget).forEach((s, i) => {
+          const row = wsDetailBiz.getRow(bR);
+          row.height = 20;
+          row.values = [s.dept, s.unit, s.detail, s.count, s.budget, s.exp, s.actual, s.remain, s.budget > 0 ? (s.actual / s.budget) : 0, s.unused];
+          row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+          row.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
+          row.getCell(3).alignment = { horizontal: 'left', vertical: 'middle' };
+          row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+          row.getCell(5).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(7).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(8).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(9).alignment = { horizontal: 'center', vertical: 'middle' };
+          row.getCell(10).alignment = { horizontal: 'right', vertical: 'middle' };
+
+          row.getCell(4).numFmt = '#,##0"목"';
+          row.getCell(5).numFmt = '#,##0';
+          row.getCell(6).numFmt = '#,##0';
+          row.getCell(7).numFmt = '#,##0';
+          row.getCell(8).numFmt = '#,##0';
+          row.getCell(9).numFmt = '0.0%';
+          row.getCell(10).numFmt = '#,##0';
+
+          for (let c = 1; c <= 10; c++) {
+            const cell = row.getCell(c);
+            cell.font = { name: '맑은 고딕', size: 9, color: { argb: 'FF334155' } };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+            };
+            if (i % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+          }
+          bR++;
+        });
+
+        wsDetailBiz.getColumn(1).width = 20;
+        wsDetailBiz.getColumn(2).width = 22;
+        wsDetailBiz.getColumn(3).width = 26;
+        wsDetailBiz.getColumn(4).width = 12;
+        wsDetailBiz.getColumn(5).width = 20;
+        wsDetailBiz.getColumn(6).width = 20;
+        wsDetailBiz.getColumn(7).width = 20;
+        wsDetailBiz.getColumn(8).width = 20;
+        wsDetailBiz.getColumn(9).width = 14;
+        wsDetailBiz.getColumn(10).width = 20;
+
+        // 파일 내보내기 실행
         const buffer = await wb.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        window.saveAs(blob, `부산교육청_세출예산_집행실적_${new Date().toISOString().slice(0,10)}.xlsx`);
+        const fileName = `부산교육청_세출예산_집행실적_분석보고서_${new Date().toISOString().slice(0,10)}.xlsx`;
+
+        if (window.saveAs) {
+          window.saveAs(blob, fileName);
+        } else {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }
       } catch (err) {
+        console.error('Excel Export Error:', err);
         alert('엑셀 생성 오류: ' + err.message);
       } finally {
-        btn.innerHTML = `<i class="fa-solid fa-file-excel text-xs mr-1"></i><span>엑셀 다운로드</span>`;
+        btn.innerHTML = originalHTML;
         btn.disabled = false;
       }
     }
