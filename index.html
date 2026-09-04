@@ -85,7 +85,7 @@
 
   <main class="max-w-[1560px] mx-auto px-5 py-6 space-y-4 flex-1 w-full">
 
-    <!-- 통일된 상단 헤더 -->
+    <!-- 상단 헤더 -->
     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-2">
         <div class="flex items-center gap-2.5">
@@ -95,7 +95,7 @@
           <div>
             <div class="flex items-center gap-2">
               <h1 class="text-lg font-bold text-slate-800 tracking-tight">부산광역시교육청 세출예산 집행실적 분석 시스템</h1>
-              <span class="version-badge">20260904 개정판</span>
+              <span class="version-badge">20260904 개정판 (세세부 확장)</span>
             </div>
           </div>
         </div>
@@ -111,7 +111,7 @@
           </div>
         </div>
       </div>
-      <p class="text-xs text-slate-500">K-에듀파인 102-A 집행실적을 분석하여 정책 · 단위 · 세부사업별 다차원 소계 및 세부 비목을 조회합니다.</p>
+      <p class="text-xs text-slate-500">K-에듀파인 102-A 집행실적을 분석하여 정책 · 단위 · 세부 · 사업항목1레벨(세세부)별 다차원 소계 및 세부 비목을 조회합니다.</p>
 
       <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-600 flex items-start gap-2 mt-3">
         <div class="p-0.5 px-1.5 rounded bg-slate-200 text-slate-700 font-bold text-[11px] shrink-0">안내</div>
@@ -131,7 +131,7 @@
         </div>
         <div>
           <p class="text-sm font-bold text-slate-700">K-에듀파인 집행실적 엑셀 파일(102-A)을 끌어다 놓거나 클릭하여 선택하세요</p>
-          <p class="text-xs text-slate-400 mt-0.5">정책 · 단위 · 세부사업 3단계 소계 요약 및 세부 집행내역 실시간 연동</p>
+          <p class="text-xs text-slate-400 mt-0.5">정책 · 단위 · 세부 · 사업항목1레벨(세세부) 4단계 소계 요약 및 세부 집행내역 실시간 연동</p>
         </div>
         <div id="fileStatus" class="hidden text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
           <i class="fa-solid fa-spinner fa-spin mr-1"></i>데이터를 처리하고 있습니다...
@@ -267,7 +267,7 @@
             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
               <i class="fa-solid fa-magnifying-glass text-xs"></i>
             </span>
-            <input type="text" id="searchInput" placeholder="사업명, 부서명, 비목명, 비목코드 등 통합 실시간 검색..." 
+            <input type="text" id="searchInput" placeholder="사업명, 부서명, 사업항목1레벨, 비목명, 비목코드 등 통합 실시간 검색..." 
                    class="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-400 transition" />
           </div>
           <div class="w-full md:w-48">
@@ -357,7 +357,7 @@
         </div>
       </div>
 
-      <!-- 4대 분석 탭 네비게이션 -->
+      <!-- 5대 분석 탭 네비게이션 -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 gap-2 pt-1">
         <div class="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
           <button onclick="switchTab('detail')" id="tabBtnDetail" class="tab-btn active px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
@@ -379,6 +379,12 @@
             <i class="fa-solid fa-diagram-project"></i>
             <span>세부사업별 요약</span>
             <span id="tabBadgeDetailBiz" class="text-[11px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-bold">0</span>
+          </button>
+          <!-- 신규 추가: 사업항목1레벨(세세부) 탭 -->
+          <button onclick="switchTab('itemLevel1')" id="tabBtnItemLevel1" class="tab-btn px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+            <i class="fa-solid fa-sitemap"></i>
+            <span>사업항목1레벨(세세부) 요약</span>
+            <span id="tabBadgeItemLevel1" class="text-[11px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-bold">0</span>
           </button>
         </div>
         <div class="text-[11px] text-slate-400">
@@ -517,6 +523,37 @@
         </div>
       </div>
 
+      <!-- 5) 신규: 사업항목1레벨(세세부)별 요약 -->
+      <div id="tabContainerItemLevel1" class="hidden space-y-3">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-3 border-b border-slate-200 flex justify-between items-center bg-slate-50/50 text-xs">
+            <span class="font-bold text-slate-700">사업항목1레벨(세세부)별 예산 및 집행실적 소계</span>
+            <span class="text-slate-500" id="itemLevel1TableCount">0개 사업항목1레벨</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs" id="itemLevel1Table">
+              <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="p-2.5 text-center">No</th>
+                  <th class="p-2.5">소관부서</th>
+                  <th class="p-2.5">상위 세부사업</th>
+                  <th class="p-2.5 font-bold text-slate-700">사업항목1레벨(세세부)명</th>
+                  <th class="p-2.5 text-center">비목수</th>
+                  <th class="p-2.5 text-right">예산현액</th>
+                  <th class="p-2.5 text-right">지출금액</th>
+                  <th class="p-2.5 text-right text-blue-800 bg-blue-50/50">실제지출금액</th>
+                  <th class="p-2.5 text-right text-emerald-800 bg-emerald-50/50">실제지출잔액</th>
+                  <th class="p-2.5 text-center">실집행률</th>
+                  <th class="p-2.5 text-right">불용액</th>
+                  <th class="p-2.5 text-center">선택</th>
+                </tr>
+              </thead>
+              <tbody id="itemLevel1TableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
 
   </main>
@@ -625,6 +662,7 @@
           policy: row['정책사업'] || '-',
           unit: row['단위사업'] || '-',
           detail: row['세부사업'] || '-',
+          item_level1: row['사업항목1레벨'] || '-', // 파일기준 X열
           task: row['단위업무'] || '-',
           mok_group: row['목그룹'] || '-',
           mok_code,
@@ -825,6 +863,7 @@
                           d.policy.toLowerCase().includes(q) ||
                           d.unit.toLowerCase().includes(q) ||
                           d.detail.toLowerCase().includes(q) ||
+                          (d.item_level1 && d.item_level1.toLowerCase().includes(q)) ||
                           d.task.toLowerCase().includes(q) ||
                           d.mok_detail.toLowerCase().includes(q) ||
                           d.mok_code.toLowerCase().includes(q);
@@ -859,6 +898,7 @@
       renderPolicySubtotalTable();
       renderUnitSubtotalTable();
       renderDetailBizSubtotalTable();
+      renderItemLevel1SubtotalTable();
     }
 
     function sortTable(key) {
@@ -933,7 +973,7 @@
       }
     }
 
-    const tabsList = ['detail', 'policy', 'unit', 'detailBiz'];
+    const tabsList = ['detail', 'policy', 'unit', 'detailBiz', 'itemLevel1'];
 
     function switchTab(tab) {
       activeTab = tab;
@@ -952,6 +992,7 @@
       if (tab === 'policy') renderPolicySubtotalTable();
       else if (tab === 'unit') renderUnitSubtotalTable();
       else if (tab === 'detailBiz') renderDetailBizSubtotalTable();
+      else if (tab === 'itemLevel1') renderItemLevel1SubtotalTable();
       else renderTable();
     }
 
@@ -1120,6 +1161,75 @@
       });
     }
 
+    /* 5) 신규: 사업항목1레벨(세세부)별 요약 렌더링 */
+    function renderItemLevel1SubtotalTable() {
+      const tbody = document.getElementById('itemLevel1TableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const itemMap = {};
+      filteredData.forEach(d => {
+        const itemKey = `${d.dept}:::${d.detail}:::${d.item_level1}`;
+        if (!itemMap[itemKey]) {
+          itemMap[itemKey] = {
+            dept: d.dept,
+            detail: d.detail,
+            item_level1: d.item_level1,
+            count: 0,
+            budget: 0,
+            exp: 0,
+            actual: 0,
+            remain: 0,
+            unused: 0
+          };
+        }
+        itemMap[itemKey].count++;
+        itemMap[itemKey].budget += d.budget_curr;
+        itemMap[itemKey].exp += d.exp_simple;
+        itemMap[itemKey].actual += d.actual_exp;
+        itemMap[itemKey].remain += d.actual_remain;
+        itemMap[itemKey].unused += d.unused;
+      });
+
+      const itemList = Object.values(itemMap).sort((a, b) => b.budget - a.budget);
+      document.getElementById('itemLevel1TableCount').textContent = `${itemList.length}개 사업항목1레벨 집계`;
+      document.getElementById('tabBadgeItemLevel1').textContent = `${itemList.length}`;
+
+      if (itemList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="12" class="p-6 text-center text-slate-400">데이터 없음</td></tr>`;
+        return;
+      }
+
+      itemList.forEach((s, idx) => {
+        const rate = s.budget > 0 ? (s.actual / s.budget) * 100 : 0;
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition cursor-pointer';
+        tr.onclick = (e) => {
+          if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) drillDownItemLevel1(s.dept, s.item_level1);
+        };
+
+        tr.innerHTML = `
+          <td class="p-2.5 text-center text-slate-400 font-mono">${idx + 1}</td>
+          <td class="p-2.5 text-slate-500">${s.dept}</td>
+          <td class="p-2.5 text-slate-500">${s.detail}</td>
+          <td class="p-2.5 font-bold text-slate-800">${s.item_level1}</td>
+          <td class="p-2.5 text-center text-slate-500">${s.count}목</td>
+          <td class="p-2.5 text-right font-semibold text-slate-800">${formatMoney(s.budget)}</td>
+          <td class="p-2.5 text-right text-slate-600">${formatMoney(s.exp)}</td>
+          <td class="p-2.5 text-right font-bold text-blue-800 bg-blue-50/20">${formatMoney(s.actual)}</td>
+          <td class="p-2.5 text-right font-bold text-emerald-800 bg-emerald-50/20">${formatMoney(s.remain)}</td>
+          <td class="p-2.5 text-center"><span class="badge ${rate >= 80 ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${rate.toFixed(1)}%</span></td>
+          <td class="p-2.5 text-right text-slate-500">${formatMoney(s.unused)}</td>
+          <td class="p-2.5 text-center">
+            <button onclick="drillDownItemLevel1('${s.dept.replace(/'/g, "\'")}', '${s.item_level1.replace(/'/g, "\'")}')" class="px-2 py-0.5 text-[11px] font-semibold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+              상세
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
     function drillDownPolicy(pName) { selectComboItem('policy', pName); switchTab('detail'); }
     function drillDownUnit(pName, uName) {
       selectedValues.policy = pName;
@@ -1133,6 +1243,12 @@
     function drillDownDetailBiz(dName, bName) {
       if (dName && dName !== '-') selectComboItem('dept', dName);
       document.getElementById('searchInput').value = bName;
+      applyFilters();
+      switchTab('detail');
+    }
+    function drillDownItemLevel1(dName, iName) {
+      if (dName && dName !== '-') selectComboItem('dept', dName);
+      if (iName && iName !== '-') document.getElementById('searchInput').value = iName;
       applyFilters();
       switchTab('detail');
     }
@@ -1156,7 +1272,8 @@
             <td class="p-2.5 text-slate-600">${d.dept}</td>
             <td class="p-2.5">
               <div class="font-bold text-slate-800">${d.detail}</div>
-              <div class="text-[11px] text-slate-400 truncate max-w-xs">${d.task}</div>
+              <div class="text-[11px] text-slate-500 font-medium">↳ [세세부] ${d.item_level1}</div>
+              <div class="text-[10px] text-slate-400 truncate max-w-xs">${d.task}</div>
             </td>
             <td class="p-2.5 whitespace-nowrap">
               <div class="font-medium text-slate-800">${d.mok_detail}</div>
@@ -1218,6 +1335,7 @@
       renderPolicySubtotalTable();
       renderUnitSubtotalTable();
       renderDetailBizSubtotalTable();
+      renderItemLevel1SubtotalTable();
     }
 
     function formatMoney(num) {
@@ -1232,9 +1350,9 @@
 
     function copyCurrentTable() {
       if (!filteredData.length) { alert('복사할 데이터가 없습니다.'); return; }
-      let tsv = '소관부서\t세부사업\t단위업무\t비목코드\t원가통계비목\t예산현액\t지출액\t실제지출액\t실제잔액\t집행률\t불용액\n';
+      let tsv = '소관부서\t세부사업\t사업항목1레벨(세세부)\t단위업무\t비목코드\t원가통계비목\t예산현액\t지출액\t실제지출액\t실제잔액\t집행률\t불용액\n';
       filteredData.forEach(d => {
-        tsv += `${d.dept}\t${d.detail}\t${d.task}\t${d.mok_code}\t${d.mok_detail}\t${Math.round(d.budget_curr)}\t${Math.round(d.exp_simple)}\t${Math.round(d.actual_exp)}\t${Math.round(d.actual_remain)}\t${d.rate.toFixed(1)}%\t${Math.round(d.unused)}\n`;
+        tsv += `${d.dept}\t${d.detail}\t${d.item_level1}\t${d.task}\t${d.mok_code}\t${d.mok_detail}\t${Math.round(d.budget_curr)}\t${Math.round(d.exp_simple)}\t${Math.round(d.actual_exp)}\t${Math.round(d.actual_remain)}\t${d.rate.toFixed(1)}%\t${Math.round(d.unused)}\n`;
       });
       navigator.clipboard.writeText(tsv).then(() => {
         alert('표 데이터가 클립보드에 복사되었습니다. 한글(HWP)이나 엑셀에 붙여넣으세요.');
@@ -1242,7 +1360,7 @@
     }
 
     /* =========================================================================
-       ★ 고품질 보고서형 엑셀 다운로드 (1220 버전 서식 폼 완벽 적용)
+       ★ 엑셀 다운로드 (5개 시트: 세부내역, 정책, 단위, 세부, 사업항목1레벨 완벽 적용)
        ========================================================================= */
     async function exportToExcel() {
       if (!filteredData.length) {
@@ -1267,21 +1385,21 @@
           views: [{ state: 'frozen', ySplit: 6, showGridLines: true }]
         });
 
-        wsDetail.mergeCells('A2:U2');
+        wsDetail.mergeCells('A2:V2');
         wsDetail.getCell('A2').value = '부산광역시교육청 세출예산 세부 집행내역 보고서';
         wsDetail.getCell('A2').font = { name: '맑은 고딕', size: 15, bold: true, color: { argb: 'FF0F172A' } };
         wsDetail.getCell('A2').alignment = { vertical: 'middle' };
         wsDetail.getRow(2).height = 28;
 
         const nowStr = new Date().toLocaleString('ko-KR');
-        wsDetail.mergeCells('A3:U3');
+        wsDetail.mergeCells('A3:V3');
         wsDetail.getCell('A3').value = `작성기준: K-에듀파인 집행실적(102-A) | 출력일시: ${nowStr} | 추출건수: ${filteredData.length.toLocaleString()}건 | 금액단위: 원, %`;
         wsDetail.getCell('A3').font = { name: '맑은 고딕', size: 9, color: { argb: 'FF64748B' } };
         wsDetail.getCell('A3').alignment = { vertical: 'middle' };
         wsDetail.getRow(3).height = 18;
 
         const headers = [
-          '소관부서', '단위업무기관', '단위업무부서', '정책사업', '단위사업', '세부사업', '단위업무',
+          '소관부서', '단위업무기관', '단위업무부서', '정책사업', '단위사업', '세부사업', '사업항목1레벨', '단위업무',
           '목그룹', '비목코드', '원가통계비목', '본예산액', '추경예산액', '예산현액', '원인행위금액', '단순지출금액',
           '일상경비교부액', '일상경비지급액', '실제지출금액', '실제지출잔액', '불용액', '실집행률'
         ];
@@ -1308,9 +1426,9 @@
 
         const startR = 7;
         const endR = startR + filteredData.length - 1;
-        const colLetters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U'];
+        const colLetters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V'];
 
-        for (let colIdx = 11; colIdx <= 20; colIdx++) {
+        for (let colIdx = 12; colIdx <= 21; colIdx++) {
           const colLet = colLetters[colIdx - 1];
           const cell = totalRow.getCell(colIdx);
           cell.value = { formula: `SUBTOTAL(9, ${colLet}${startR}:${colLet}${endR})` };
@@ -1318,13 +1436,13 @@
           cell.alignment = { horizontal: 'right', vertical: 'middle' };
         }
 
-        const rateCell = totalRow.getCell(21);
-        rateCell.value = { formula: `IF(M6>0, R6/M6, 0)` };
+        const rateCell = totalRow.getCell(22);
+        rateCell.value = { formula: `IF(N6>0, S6/N6, 0)` };
         rateCell.numFmt = '0.0%';
         rateCell.alignment = { horizontal: 'center', vertical: 'middle' };
 
         totalRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
-          if (colNum <= 21) {
+          if (colNum <= 22) {
             cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FF0F172A' } };
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
             cell.border = {
@@ -1342,14 +1460,14 @@
           r.height = 20;
           const isZebra = idx % 2 === 1;
           r.values = [
-            d.dept, d.unit_org, d.unit_dept, d.policy, d.unit, d.detail, d.task,
+            d.dept, d.unit_org, d.unit_dept, d.policy, d.unit, d.detail, d.item_level1, d.task,
             d.mok_group, d.mok_code, d.mok_detail,
             d.budget_init, d.budget_sup, d.budget_curr, d.contract, d.exp_simple,
             d.grant, d.pay, d.actual_exp, d.actual_remain, d.unused,
             d.budget_curr > 0 ? (d.actual_exp / d.budget_curr) : 0
           ];
 
-          for (let c = 1; c <= 21; c++) {
+          for (let c = 1; c <= 22; c++) {
             const cell = r.getCell(c);
             cell.font = { name: '맑은 고딕', size: 9, color: { argb: 'FF334155' } };
             cell.border = {
@@ -1360,35 +1478,35 @@
             };
             if (isZebra) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
 
-            if ([1,2,3,4,5,6,7,10].includes(c)) {
+            if ([1,2,3,4,5,6,7,8,11].includes(c)) {
               cell.alignment = { horizontal: 'left', vertical: 'middle' };
-            } else if (c === 8 || c === 9) {
+            } else if (c === 9 || c === 10) {
               cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            } else if (c >= 11 && c <= 20) {
+            } else if (c >= 12 && c <= 21) {
               cell.alignment = { horizontal: 'right', vertical: 'middle' };
               cell.numFmt = '#,##0';
-              if (c === 13) {
+              if (c === 14) {
                 cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FF0F172A' } };
-              } else if (c === 18) {
+              } else if (c === 19) {
                 cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FF1E40AF' } };
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFF6FF' } };
-              } else if (c === 19) {
+              } else if (c === 20) {
                 cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FF047857' } };
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECFDF5' } };
               }
-            } else if (c === 21) {
+            } else if (c === 22) {
               cell.alignment = { horizontal: 'center', vertical: 'middle' };
               cell.numFmt = '0.0%';
-              const val = r.values[20];
+              const val = r.values[21];
               if (val < 0.5) cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FFDC2626' } };
               else if (val >= 0.9) cell.font = { name: '맑은 고딕', size: 9, bold: true, color: { argb: 'FF047857' } };
             }
           }
         });
 
-        const colWidths = [20, 22, 20, 18, 20, 24, 28, 12, 14, 20, 16, 16, 17, 16, 16, 16, 16, 17, 17, 16, 12];
+        const colWidths = [18, 20, 18, 16, 18, 22, 22, 24, 12, 14, 20, 15, 15, 16, 15, 15, 15, 15, 16, 16, 15, 12];
         colWidths.forEach((w, i) => { wsDetail.getColumn(i + 1).width = w; });
-        wsDetail.autoFilter = { from: { row: 5, column: 1 }, to: { row: endR, column: 21 } };
+        wsDetail.autoFilter = { from: { row: 5, column: 1 }, to: { row: endR, column: 22 } };
 
         // -------------------------------------------------------------
         // 2) Sheet: 정책사업별 요약
@@ -1623,6 +1741,86 @@
         wsDetailBiz.getColumn(8).width = 20;
         wsDetailBiz.getColumn(9).width = 14;
         wsDetailBiz.getColumn(10).width = 20;
+
+        // -------------------------------------------------------------
+        // 5) Sheet: 사업항목1레벨(세세부)별 요약 (신규 추가)
+        // -------------------------------------------------------------
+        const wsItemLevel1 = wb.addWorksheet('사업항목1레벨 요약', { views: [{ showGridLines: true }] });
+        wsItemLevel1.mergeCells('A2:J2');
+        wsItemLevel1.getCell('A2').value = '부산광역시교육청 사업항목1레벨(세세부)별 집행실적 소계 요약표';
+        wsItemLevel1.getCell('A2').font = { name: '맑은 고딕', size: 14, bold: true, color: { argb: 'FF0F172A' } };
+        wsItemLevel1.getRow(2).height = 26;
+
+        const iHeaders = ['소관부서', '상위 세부사업', '사업항목1레벨(세세부)명', '비목수', '예산현액', '단순지출액', '실제지출금액', '실제지출잔액', '집행률', '불용액'];
+        const iHeaderRow = wsItemLevel1.getRow(4);
+        iHeaderRow.values = iHeaders;
+        iHeaderRow.height = 24;
+        iHeaderRow.eachCell(cell => {
+          cell.font = { name: '맑은 고딕', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0284C7' } }; // Sky Blue Accent
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        });
+
+        const iMap = {};
+        filteredData.forEach(d => {
+          const iKey = `${d.dept}:::${d.detail}:::${d.item_level1}`;
+          if (!iMap[iKey]) iMap[iKey] = { dept: d.dept, detail: d.detail, item_level1: d.item_level1, count: 0, budget: 0, exp: 0, actual: 0, remain: 0, unused: 0 };
+          iMap[iKey].count++;
+          iMap[iKey].budget += d.budget_curr;
+          iMap[iKey].exp += d.exp_simple;
+          iMap[iKey].actual += d.actual_exp;
+          iMap[iKey].remain += d.actual_remain;
+          iMap[iKey].unused += d.unused;
+        });
+
+        let iR = 5;
+        Object.values(iMap).sort((a,b) => b.budget - a.budget).forEach((s, i) => {
+          const row = wsItemLevel1.getRow(iR);
+          row.height = 20;
+          row.values = [s.dept, s.detail, s.item_level1, s.count, s.budget, s.exp, s.actual, s.remain, s.budget > 0 ? (s.actual / s.budget) : 0, s.unused];
+          row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+          row.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
+          row.getCell(3).alignment = { horizontal: 'left', vertical: 'middle' };
+          row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+          row.getCell(5).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(6).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(7).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(8).alignment = { horizontal: 'right', vertical: 'middle' };
+          row.getCell(9).alignment = { horizontal: 'center', vertical: 'middle' };
+          row.getCell(10).alignment = { horizontal: 'right', vertical: 'middle' };
+
+          row.getCell(4).numFmt = '#,##0"목"';
+          row.getCell(5).numFmt = '#,##0';
+          row.getCell(6).numFmt = '#,##0';
+          row.getCell(7).numFmt = '#,##0';
+          row.getCell(8).numFmt = '#,##0';
+          row.getCell(9).numFmt = '0.0%';
+          row.getCell(10).numFmt = '#,##0';
+
+          for (let c = 1; c <= 10; c++) {
+            const cell = row.getCell(c);
+            cell.font = { name: '맑은 고딕', size: 9, color: { argb: 'FF334155' } };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+            };
+            if (i % 2 === 1) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+          }
+          iR++;
+        });
+
+        wsItemLevel1.getColumn(1).width = 20;
+        wsItemLevel1.getColumn(2).width = 24;
+        wsItemLevel1.getColumn(3).width = 26;
+        wsItemLevel1.getColumn(4).width = 12;
+        wsItemLevel1.getColumn(5).width = 20;
+        wsItemLevel1.getColumn(6).width = 20;
+        wsItemLevel1.getColumn(7).width = 20;
+        wsItemLevel1.getColumn(8).width = 20;
+        wsItemLevel1.getColumn(9).width = 14;
+        wsItemLevel1.getColumn(10).width = 20;
 
         // 파일 내보내기 실행
         const buffer = await wb.xlsx.writeBuffer();
